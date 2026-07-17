@@ -41,7 +41,7 @@ Keep this document updated during the primary Codex thread.
 - Browser/device check: Chrome recognized the FaceTime HD camera at 640×480 and listed a second camera. The live video clock advanced continuously, then camera → telemetry → sample video switching worked without reload. Audio start/stop state and responsive note/light indicators were verified with no browser warnings or errors. The camera was not aimed at the aquarium, so live-fish contour accuracy still needs an aquarium-side check.
 - Human sound/design decisions: The user accepted the sample-video sound as “めちゃくちゃいい感じ”. Phase 2 keeps that calm character and the existing midnight-aquarium visual direction.
 - Known limitations: Chrome was checked; Safari remains untested. Camera calibration is in memory. Camera denial fallback is implemented but the denial branch was not manually forced after permission was granted.
-- Commit hash: Pending final Phase 2 commit
+- Commit hash: `abaaf03`
 
 ## Phase 3: GPT-5.6 AI Conductor
 
