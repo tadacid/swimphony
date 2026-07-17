@@ -30,7 +30,7 @@ Keep this document updated during the primary Codex thread.
 - Tuning values: 480px analysis width; 83ms interval (~12Hz); mask threshold 0.42; weights color 0.45, motion 0.25, continuity 0.20, shape 0.10; EMA position 0.34, speed 0.22, area 0.18; four-frame hold; hue tolerance 24 degrees.
 - Manual check: Choose Sample video → drag the aquarium ROI → choose Sample fish → click the fish body → inspect Mask → Confirm & track. Verify the contour and trail follow the fish and that confidence falls without crashing if calibration is intentionally moved away from the fish.
 - Known limitations: Only Chrome was checked in this phase; a full 5-minute endurance run and Safari check remain. Calibration is in-memory. The MP4 is intentionally ignored by Git for privacy and repository size. Live camera remains Phase 2.
-- Commit hash: Pending initial repository commit.
+- Commit hash: `2da936a`
 
 ## Phase 2: audio and Virtual Light
 
