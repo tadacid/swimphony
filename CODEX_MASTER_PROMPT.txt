@@ -1,0 +1,25 @@
+You are working inside the real Swimphony hackathon repository.
+
+Before editing anything:
+1. Read AGENTS.md.
+2. Read START_HERE.md.
+3. Read every file under docs/.
+4. Inspect the existing source and run the baseline commands.
+
+Project definition:
+Swimphony uses one ordinary camera to track one goldfish and transform its movement into generative sound and ambient light. The submission must be usable without special hardware through sample video, recorded telemetry, and Virtual Light. Philips Hue is optional. Two-camera 3D tracking and iPhone TrueDepth are deferred.
+
+Core architecture:
+Video or camera input -> tracker -> shared FishState -> performance mapper -> Tone.js audio + Virtual Light + optional Hue.
+Natural-language mood prompt -> server-side OpenAI Responses API using GPT-5.6 -> validated PerformancePreset -> performance mapper.
+
+Non-negotiable constraints:
+- Preserve the runnable telemetry demo.
+- Do not expose API keys to client code.
+- Do not use flashing or rapid light changes.
+- Do not implement user accounts, cloud persistence, two-camera tracking, TrueDepth, or multi-fish identity tracking.
+- Work phase by phase.
+- Keep the primary Codex thread because its /feedback Session ID is required for the submission.
+
+First task:
+Run npm install, npm test, npm run lint, and npm run build. Fix only baseline issues needed to make the starter reliable. Then summarize the repository and wait for the Phase 1 prompt in prompts/01-phase1-tracking.md. Do not begin tracking implementation until that prompt is supplied.

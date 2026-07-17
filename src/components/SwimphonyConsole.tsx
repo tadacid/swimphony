@@ -1,0 +1,311 @@
+"use client";
+
+import type { ChangeEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  AquariumStage,
+  type TrailPoint,
+} from "@/components/AquariumStage";
+import { SampleVideoTracker } from "@/components/SampleVideoTracker";
+import { ToneEngine } from "@/lib/audio/tone-engine";
+import { virtualLightStyle } from "@/lib/lighting/virtual-light";
+import { DEFAULT_PRESET } from "@/lib/performance/default-preset";
+import { mapFishToPerformance } from "@/lib/performance/mapper";
+import type { PerformancePreset } from "@/lib/performance/preset-schema";
+import { simulateFishState } from "@/lib/tracking/simulator";
+import { EMPTY_FISH_STATE, type FishState } from "@/lib/tracking/types";
+
+const SAMPLE_PROMPTS = [
+  "Quiet midnight aquarium with glassy high notes and slow blue light.",
+  "Warm minimal ambient music, soft gold and green, no sudden changes.",
+  "Playful 8-bit ripples, but keep the light calm and never flash.",
+] as const;
+
+type PresetResponse = {
+  preset: PerformancePreset;
+  source: "gpt-5.6" | "fallback";
+  model: string;
+  warning?: string;
+};
+
+type ActiveSource = "sample-telemetry" | "sample-video";
+
+export function SwimphonyConsole() {
+  const [fish, setFish] = useState<FishState>(() => simulateFishState(0));
+  const [trail, setTrail] = useState<TrailPoint[]>([]);
+  const [source, setSource] = useState<ActiveSource>("sample-telemetry");
+  const [preset, setPreset] = useState<PerformancePreset>(DEFAULT_PRESET);
+  const [prompt, setPrompt] = useState<string>(SAMPLE_PROMPTS[0]);
+  const [audioActive, setAudioActive] = useState(false);
+  const [presetSource, setPresetSource] = useState<"built-in" | "gpt-5.6" | "fallback">(
+    "built-in",
+  );
+  const [model, setModel] = useState("gpt-5.6-terra");
+  const [message, setMessage] = useState(
+    "Telemetry demo is running. Switch to Sample video for fish tracking.",
+  );
+  const [generating, setGenerating] = useState(false);
+  const engineRef = useRef<ToneEngine | null>(null);
+
+  const frame = useMemo(
+    () => mapFishToPerformance(fish, preset),
+    [fish, preset],
+  );
+
+  const acceptFishState = useCallback((nextFish: FishState) => {
+    setFish(nextFish);
+    setTrail((points) => {
+      const next = [
+        ...points.map((point) => ({
+          ...point,
+          opacity: point.opacity * 0.88,
+        })),
+        {
+          x: nextFish.x,
+          y: nextFish.y,
+          opacity: nextFish.detected ? 0.72 : 0.25,
+        },
+      ];
+      return next.slice(-28);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (source !== "sample-telemetry") return;
+    let frameId = 0;
+    let lastUpdate = 0;
+    const startedAt = performance.now();
+
+    const tick = (now: number) => {
+      if (now - lastUpdate >= 66) {
+        acceptFishState(simulateFishState(now - startedAt));
+        lastUpdate = now;
+      }
+      frameId = requestAnimationFrame(tick);
+    };
+
+    frameId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameId);
+  }, [acceptFishState, source]);
+
+  useEffect(() => {
+    if (audioActive) {
+      engineRef.current?.update(frame);
+    }
+  }, [audioActive, frame]);
+
+  useEffect(() => {
+    if (audioActive) {
+      engineRef.current?.applyPreset(preset);
+    }
+  }, [audioActive, preset]);
+
+  useEffect(() => {
+    return () => engineRef.current?.stop();
+  }, []);
+
+  async function toggleAudio() {
+    if (audioActive) {
+      engineRef.current?.stop();
+      engineRef.current = null;
+      setAudioActive(false);
+      setMessage("Audio stopped. Visual telemetry continues.");
+      return;
+    }
+
+    try {
+      const engine = new ToneEngine();
+      await engine.start(preset);
+      engineRef.current = engine;
+      setAudioActive(true);
+      setMessage("Audio is live. The current FishState now controls the synth.");
+    } catch (error) {
+      console.error(error);
+      setMessage("Audio could not start. Check browser audio permissions.");
+    }
+  }
+
+  function selectSource(nextSource: ActiveSource) {
+    setSource(nextSource);
+    setTrail([]);
+    if (nextSource === "sample-telemetry") {
+      setFish(simulateFishState(0));
+      setMessage("Recorded telemetry is running.");
+    } else {
+      setFish({ ...EMPTY_FISH_STATE, source: "sample-video" });
+      setMessage("Sample video ready for aquarium and fish calibration.");
+    }
+  }
+
+  async function generatePreset() {
+    setGenerating(true);
+    setMessage("AI Conductor is designing a safe sound-and-light preset…");
+
+    try {
+      const response = await fetch("/api/preset", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+
+      const data = (await response.json()) as PresetResponse | { error: string };
+      if (!response.ok || "error" in data) {
+        throw new Error("error" in data ? data.error : "Preset request failed.");
+      }
+
+      setPreset(data.preset);
+      setPresetSource(data.source);
+      setModel(data.model);
+      setMessage(
+        data.warning ??
+          `${data.preset.name} is active. Sound and light now share the new rules.`,
+      );
+    } catch (error) {
+      console.error(error);
+      setMessage("Preset generation failed. The current preset remains active.");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
+  return (
+    <main className="app-shell" style={virtualLightStyle(frame.light)}>
+      <header className="app-header">
+        <div>
+          <p className="eyebrow">ONE CAMERA · LIVING INSTRUMENT</p>
+          <h1>Swimphony</h1>
+        </div>
+        <div className="header-status">
+          <span>Source</span>
+          <strong>{source === "sample-video" ? "Sample video" : "Recorded telemetry"}</strong>
+        </div>
+      </header>
+
+      <div className="workspace">
+        {source === "sample-video" ? (
+          <SampleVideoTracker
+            fish={fish}
+            frame={frame}
+            trail={trail}
+            onFishState={acceptFishState}
+          />
+        ) : (
+          <AquariumStage fish={fish} frame={frame} trail={trail} />
+        )}
+
+        <aside className="control-panel">
+          <section className="panel-section">
+            <div className="section-heading">
+              <div>
+                <span className="section-kicker">PERFORMANCE</span>
+                <h2>{preset.name}</h2>
+              </div>
+              <span className="source-badge">{presetSource}</span>
+            </div>
+            <p className="preset-description">{preset.description}</p>
+
+            <div className="source-switcher" aria-label="Tracking source">
+              <button
+                type="button"
+                data-active={source === "sample-telemetry"}
+                onClick={() => selectSource("sample-telemetry")}
+              >
+                Demo telemetry
+              </button>
+              <button
+                type="button"
+                data-active={source === "sample-video"}
+                onClick={() => selectSource("sample-video")}
+              >
+                Sample video
+              </button>
+            </div>
+
+            <div className="button-row">
+              <button className="primary-button" onClick={toggleAudio} type="button">
+                {audioActive ? "Stop audio" : "Start audio"}
+              </button>
+              <button className="secondary-button" disabled type="button">
+                Live camera · Phase 2
+              </button>
+            </div>
+          </section>
+
+          <section className="panel-section conductor-section">
+            <div className="section-heading">
+              <div>
+                <span className="section-kicker">GPT-5.6</span>
+                <h2>AI Conductor</h2>
+              </div>
+              <span className="model-label">{model}</span>
+            </div>
+
+            <label className="prompt-label" htmlFor="mood-prompt">
+              Direct the sound and ambient light
+            </label>
+            <textarea
+              id="mood-prompt"
+              value={prompt}
+              onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
+                setPrompt(event.target.value)
+              }
+              rows={5}
+            />
+
+            <div className="prompt-chips" aria-label="Example prompts">
+              {SAMPLE_PROMPTS.map((sample, index) => (
+                <button
+                  key={sample}
+                  type="button"
+                  onClick={() => setPrompt(sample)}
+                >
+                  0{index + 1}
+                </button>
+              ))}
+            </div>
+
+            <button
+              className="generate-button"
+              onClick={generatePreset}
+              disabled={generating || prompt.trim().length === 0}
+              type="button"
+            >
+              {generating ? "Designing preset…" : "Generate performance preset"}
+            </button>
+          </section>
+
+          <section className="panel-section compact-section">
+            <span className="section-kicker">CURRENT MAPPING</span>
+            <dl className="mapping-list">
+              <div>
+                <dt>Horizontal</dt>
+                <dd>Pan + hue</dd>
+              </div>
+              <div>
+                <dt>Vertical</dt>
+                <dd>Pitch + light</dd>
+              </div>
+              <div>
+                <dt>Speed</dt>
+                <dd>Density + saturation</dd>
+              </div>
+              <div>
+                <dt>Confidence</dt>
+                <dd>Safety fade</dd>
+              </div>
+            </dl>
+          </section>
+        </aside>
+      </div>
+
+      <footer className="app-footer">
+        <p>{message}</p>
+        <div>
+          <span>Hue</span>
+          <strong>Virtual only</strong>
+        </div>
+      </footer>
+    </main>
+  );
+}
