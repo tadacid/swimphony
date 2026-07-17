@@ -46,12 +46,14 @@ Keep this document updated during the primary Codex thread.
 ## Phase 3: GPT-5.6 AI Conductor
 
 - Prompt used: `prompts/03-phase3-ai-conductor.md`
-- Files changed:
-- Model ID:
-- Example prompts tested:
-- Validation and safety decisions:
-- Codex contribution:
-- Commit hash:
+- Files changed: `src/app/api/preset/route.ts`, `src/lib/performance/codex-conductor.ts`, `src/lib/performance/codex-conductor.test.ts`, `src/lib/performance/preset-schema.ts`, `src/lib/performance/preset-schema.test.ts`, `src/lib/performance/preset-json-schema.ts`, `src/lib/performance/default-preset.ts`, `src/lib/performance/mapper.ts`, `src/lib/performance/mapper.test.ts`, `src/components/SwimphonyConsole.tsx`, `.env.example`, `README.md`, `MANIFEST.md`, `docs/03-architecture.md`, `docs/09-decision-log.md`, `docs/12-openai-setup.md`, `package.json`, `package-lock.json`
+- Model ID: `gpt-5.6-terra`, low reasoning, through a short-lived local Codex App Server using the existing ChatGPT login. No separate API key.
+- Example prompts tested: A quiet midnight aquarium produced `深夜の水槽`; a warm morning produced `金色の朝`; a playful 8-bit request produced `8-bit水紋`. A fourth browser test produced `朝の水槽` and updated the live mapping while audio was running.
+- Validation and safety decisions: Private stdio only; ephemeral thread; read-only sandbox; approvals disabled; 800-character prompt limit; 45-second timeout; structured JSON Schema output; final Zod validation; conservative brightness, transition, density, and gain limits; built-in fallback when Codex is unavailable or invalid.
+- Codex contribution: Replaced the separate OpenAI API dependency with the local Codex App Server, added schema-constrained performance composition, made fish-to-sound/light mappings configurable, updated the conductor UI and local setup documents, and added protocol, schema, and mapper tests.
+- Browser check: Nintendo Switch Camera remained selected, audio remained live, and the generated preset appeared as `codex-local` with model `gpt-5.6-terra`. The only console error was a missing optional `favicon.ico`.
+- Known limitations: Codex App Server is experimental and intended for local use. It is not exposed publicly. Generation requires the local Codex CLI to be signed in; the safe built-in preset remains available otherwise.
+- Commit hash: `35d0164`
 
 ## Phase 4: Hue, if completed
 
