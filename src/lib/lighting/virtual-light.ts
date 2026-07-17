@@ -8,7 +8,10 @@ export function virtualLightStyle(light: LightFrame): CSSProperties {
   const secondary = `hsl(${secondaryHue} ${Math.max(20, light.saturation - 16)}% ${Math.max(7, light.brightness - 12)}%)`;
 
   return {
+    "--light-primary": primary,
+    "--light-secondary": secondary,
+    "--light-transition": `${light.transitionMs}ms`,
     backgroundImage: `radial-gradient(circle at 22% 22%, ${primary}, transparent 44%), radial-gradient(circle at 84% 76%, ${secondary}, transparent 48%)`,
     transition: `background-image ${light.transitionMs}ms ease, background-color ${light.transitionMs}ms ease`,
-  };
+  } as CSSProperties;
 }

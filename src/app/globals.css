@@ -40,10 +40,24 @@ button:disabled {
 }
 
 .app-shell {
+  position: relative;
+  isolation: isolate;
   min-height: 100vh;
   padding: 28px;
   background-color: #071010;
   background-blend-mode: screen;
+}
+
+.virtual-light-wash {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 18% 12%, var(--light-primary), transparent 38%),
+    radial-gradient(circle at 86% 82%, var(--light-secondary), transparent 42%);
+  opacity: 0.42;
+  transition: opacity var(--light-transition) ease;
 }
 
 .app-header,
@@ -328,7 +342,7 @@ button:disabled {
 
 .source-switcher {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, 1fr);
   gap: 3px;
   margin: 0 0 10px;
   padding: 3px;
@@ -372,6 +386,39 @@ button:disabled {
   border: 1px solid var(--line);
   background: transparent;
   color: rgba(255, 255, 255, 0.32);
+}
+
+.audio-row {
+  align-items: stretch;
+}
+
+.live-output {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--muted);
+}
+
+.live-output > span {
+  min-width: 37px;
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 680;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-output > strong {
+  font-size: 0.65rem;
+  font-weight: 560;
+}
+
+.live-output[data-active="true"] {
+  border-color: rgba(220, 255, 114, 0.34);
+  color: var(--accent);
 }
 
 .prompt-label {
@@ -430,6 +477,41 @@ textarea:focus {
 
 .compact-section {
   background: rgba(255, 255, 255, 0.018);
+}
+
+.light-now {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 22px;
+  padding: 0 0 19px;
+  border-bottom: 1px solid var(--line);
+}
+
+.light-swatch {
+  width: 37px;
+  height: 37px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 50%;
+  box-shadow: 0 0 24px color-mix(in srgb, var(--light-primary) 62%, transparent);
+  transition: background-color var(--light-transition) ease;
+}
+
+.light-now .section-kicker {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.light-now strong {
+  display: block;
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.light-state {
+  color: var(--muted);
+  font-size: 0.62rem;
 }
 
 .mapping-list {
@@ -616,6 +698,31 @@ textarea:focus {
   background:
     linear-gradient(90deg, rgba(220, 255, 114, 0.025), transparent 42%),
     #07100f;
+}
+
+.camera-device-field {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.camera-device-field > span {
+  color: var(--accent);
+  font-size: 0.58rem;
+  font-weight: 760;
+  letter-spacing: 0.12em;
+}
+
+.camera-device-field select {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #0d1715;
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.7rem;
 }
 
 .calibration-flow {

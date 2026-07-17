@@ -31,6 +31,12 @@ type SampleVideoTrackerProps = {
   onFishState: (fish: FishState) => void;
 };
 
+type TrackedMediaProps = SampleVideoTrackerProps & {
+  mediaKind: "sample-video" | "camera";
+  onCameraUnavailable?: (message: string) => void;
+  onCameraReady?: () => void;
+};
+
 function pointFromEvent(event: ReactPointerEvent<HTMLDivElement>): Point {
   const bounds = event.currentTarget.getBoundingClientRect();
   return {
@@ -67,16 +73,29 @@ function drawMask(
   context.putImageData(image, 0, 0);
 }
 
-export function SampleVideoTracker({
+function cameraFailureMessage(error: unknown): string {
+  if (error instanceof DOMException && error.name === "NotAllowedError") {
+    return "Camera permission was denied. Recorded telemetry is running instead.";
+  }
+  if (error instanceof DOMException && error.name === "NotFoundError") {
+    return "No camera was found. Recorded telemetry is running instead.";
+  }
+  return "The camera could not start. Recorded telemetry is running instead.";
+}
+
+function TrackedMedia({
   fish,
   frame,
   trail,
   onFishState,
-}: SampleVideoTrackerProps) {
+  mediaKind,
+  onCameraUnavailable,
+  onCameraReady,
+}: TrackedMediaProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const analysisCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const maskCanvasRef = useRef<HTMLCanvasElement | null>(null);
-  const trackerRef = useRef(new CanvasFishTracker());
+  const trackerRef = useRef(new CanvasFishTracker(mediaKind));
   const dragStartRef = useRef<Point | null>(null);
   const latestResultRef = useRef<TrackingFrame | null>(null);
   const [roi, setRoi] = useState<AquariumRoi>(DEFAULT_AQUARIUM_ROI);
@@ -87,9 +106,58 @@ export function SampleVideoTracker({
   const [videoReady, setVideoReady] = useState(false);
   const [showMask, setShowMask] = useState(true);
   const [candidateCount, setCandidateCount] = useState(0);
+  const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedDeviceId, setSelectedDeviceId] = useState("");
   const [message, setMessage] = useState(
     "Drag a box around the inside of the aquarium.",
   );
+
+  useEffect(() => {
+    if (mediaKind !== "camera") return;
+    let cancelled = false;
+    let stream: MediaStream | null = null;
+    const videoElement = videoRef.current;
+
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: false,
+          video: selectedDeviceId
+            ? { deviceId: { exact: selectedDeviceId } }
+            : { facingMode: "environment" },
+        });
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
+        }
+
+        const video = videoElement;
+        if (!video) return;
+        video.srcObject = stream;
+        await video.play();
+        const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
+          (device) => device.kind === "videoinput",
+        );
+        if (cancelled) return;
+        setCameraDevices(devices);
+        const activeDeviceId = stream.getVideoTracks()[0]?.getSettings().deviceId;
+        if (!selectedDeviceId && activeDeviceId) setSelectedDeviceId(activeDeviceId);
+        setVideoReady(true);
+        setMessage("Camera ready. Drag a box around the aquarium interior.");
+        onCameraReady?.();
+      } catch (error) {
+        console.error(error);
+        if (!cancelled) onCameraUnavailable?.(cameraFailureMessage(error));
+      }
+    }
+
+    void startCamera();
+    return () => {
+      cancelled = true;
+      stream?.getTracks().forEach((track) => track.stop());
+      if (videoElement) videoElement.srcObject = null;
+    };
+  }, [mediaKind, onCameraReady, onCameraUnavailable, selectedDeviceId]);
 
   const processCurrentFrame = useCallback(
     (timestamp: number, activeProfile: ColorProfile) => {
@@ -129,7 +197,10 @@ export function SampleVideoTracker({
         !video.ended &&
         now - lastTrackedAt >= TRACKING_TUNING.trackingIntervalMs
       ) {
-        processCurrentFrame(video.currentTime * 1000, profile);
+        processCurrentFrame(
+          mediaKind === "camera" ? performance.now() : video.currentTime * 1000,
+          profile,
+        );
         lastTrackedAt = now;
       }
       animationFrame = requestAnimationFrame(tick);
@@ -137,7 +208,7 @@ export function SampleVideoTracker({
 
     animationFrame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animationFrame);
-  }, [processCurrentFrame, profile, tracking]);
+  }, [mediaKind, processCurrentFrame, profile, tracking]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -177,7 +248,10 @@ export function SampleVideoTracker({
     trackerRef.current.reset();
     setProfile(sampled);
     setInteraction("idle");
-    processCurrentFrame(video.currentTime * 1000, sampled);
+    processCurrentFrame(
+      mediaKind === "camera" ? performance.now() : video.currentTime * 1000,
+      sampled,
+    );
     setMessage("Color captured. Check the mask, then confirm and start tracking.");
   }
 
@@ -241,6 +315,7 @@ export function SampleVideoTracker({
   function handleVideoReady() {
     const video = videoRef.current;
     if (!video) return;
+    if (mediaKind === "camera") return;
     setVideoReady(true);
     video.pause();
     if (video.duration > 4) video.currentTime = 3;
@@ -253,19 +328,20 @@ export function SampleVideoTracker({
   }
 
   const marker = pointFromRoi({ x: fish.x, y: fish.y }, roi);
+  const sourceLabel = mediaKind === "camera" ? "Live camera" : "Sample video";
 
   return (
-    <section className="aquarium-card sample-video-card" aria-label="Sample video tracker">
+    <section className="aquarium-card sample-video-card" aria-label={`${sourceLabel} tracker`}>
       <div className="sample-video-frame">
         <video
           ref={videoRef}
-          src="/demo/goldfish-demo.mp4"
+          src={mediaKind === "sample-video" ? "/demo/goldfish-demo.mp4" : undefined}
           playsInline
           muted
           preload="auto"
-          onLoadedData={handleVideoReady}
-          onSeeked={handleSeeked}
-          onEnded={handleVideoEnded}
+          onLoadedData={mediaKind === "sample-video" ? handleVideoReady : undefined}
+          onSeeked={mediaKind === "sample-video" ? handleSeeked : undefined}
+          onEnded={mediaKind === "sample-video" ? handleVideoEnded : undefined}
         />
         <canvas ref={maskCanvasRef} className="tracking-mask" aria-hidden="true" />
         <div
@@ -331,20 +407,41 @@ export function SampleVideoTracker({
 
         <div className="stage-label sample-stage-label">
           <span className="status-dot" data-active={fish.detected && tracking} />
-          {tracking ? "Sample video · tracking" : "Sample video · calibration"}
+          {sourceLabel} · {tracking ? "tracking" : "calibration"}
         </div>
 
-        <div className="video-time-controls">
-          <button type="button" onClick={() => seekBy(-2)} disabled={!videoReady}>
-            −2s
-          </button>
-          <button type="button" onClick={() => seekBy(2)} disabled={!videoReady}>
-            +2s
-          </button>
-        </div>
+        {mediaKind === "sample-video" ? (
+          <div className="video-time-controls">
+            <button type="button" onClick={() => seekBy(-2)} disabled={!videoReady}>
+              −2s
+            </button>
+            <button type="button" onClick={() => seekBy(2)} disabled={!videoReady}>
+              +2s
+            </button>
+          </div>
+        ) : null}
       </div>
 
       <div className="tracking-console">
+        {mediaKind === "camera" ? (
+          <label className="camera-device-field">
+            <span>CAMERA</span>
+            <select
+              value={selectedDeviceId}
+              onChange={(event) => {
+                setTracking(false);
+                trackerRef.current.reset();
+                setSelectedDeviceId(event.target.value);
+              }}
+            >
+              {cameraDevices.map((device, index) => (
+                <option key={device.deviceId} value={device.deviceId}>
+                  {device.label || `Camera ${index + 1}`}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <div className="calibration-flow" aria-label="Tracking calibration">
           <button
             type="button"
@@ -409,4 +506,17 @@ export function SampleVideoTracker({
       <canvas ref={analysisCanvasRef} className="analysis-canvas" aria-hidden="true" />
     </section>
   );
+}
+
+export function SampleVideoTracker(props: SampleVideoTrackerProps) {
+  return <TrackedMedia {...props} mediaKind="sample-video" />;
+}
+
+export function LiveCameraTracker(
+  props: SampleVideoTrackerProps & {
+    onCameraUnavailable: (message: string) => void;
+    onCameraReady: () => void;
+  },
+) {
+  return <TrackedMedia {...props} mediaKind="camera" />;
 }

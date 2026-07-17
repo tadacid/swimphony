@@ -9,14 +9,14 @@ Swimphony is a one-camera web application that tracks a goldfish and converts it
 - A working Next.js interface driven by deterministic sample telemetry
 - A browser-native sample-video tracker with aquarium ROI, fish-color calibration, mask preview, contour, trail, and confidence fallback
 - A shared `FishState` model for camera, video, dual-camera, and future TrueDepth inputs
-- A Tone.js audio engine
-- A virtual-light renderer
+- A Tone.js audio engine with a tracking-independent note scheduler and clean stop behavior
+- A smooth, confidence-aware virtual-light renderer
 - A GPT-5.6 AI Conductor route that generates validated sound-and-light presets
 - Scope, architecture, testing, demo, and Codex handoff documents
 - Reference photos of the actual aquarium
 - Phase-by-phase Codex prompts
 
-Live-camera input and the Hue bridge connection remain for later phases. The deterministic telemetry path stays available as a fallback.
+Live-camera input now shares the same calibration and tracking path as sample video. The Hue bridge connection remains optional and the deterministic telemetry path stays available as a fallback.
 
 ## Quick start
 
@@ -41,6 +41,14 @@ Place an H.264 MP4 at `public/demo/goldfish-demo.mp4`, then:
 5. Choose **Confirm & track**.
 
 The tracker runs at about 12 Hz while video playback stays smooth. The supplied project keeps user footage out of Git by default; review privacy and rights before publishing a video.
+
+## Live-camera tracking
+
+1. Choose **Live camera** and allow camera access.
+2. Select the intended camera if more than one is connected.
+3. Drag the aquarium ROI, sample the fish color, and confirm tracking exactly as in sample-video mode.
+
+If permission is denied or no camera is available, Swimphony returns to the recorded telemetry demo without reloading.
 
 ## Begin the Codex build
 

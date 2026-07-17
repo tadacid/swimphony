@@ -7,7 +7,10 @@ import {
   AquariumStage,
   type TrailPoint,
 } from "@/components/AquariumStage";
-import { SampleVideoTracker } from "@/components/SampleVideoTracker";
+import {
+  LiveCameraTracker,
+  SampleVideoTracker,
+} from "@/components/SampleVideoTracker";
 import { ToneEngine } from "@/lib/audio/tone-engine";
 import { virtualLightStyle } from "@/lib/lighting/virtual-light";
 import { DEFAULT_PRESET } from "@/lib/performance/default-preset";
@@ -29,7 +32,13 @@ type PresetResponse = {
   warning?: string;
 };
 
-type ActiveSource = "sample-telemetry" | "sample-video";
+type ActiveSource = "sample-telemetry" | "sample-video" | "camera";
+
+const SOURCE_LABELS: Record<ActiveSource, string> = {
+  "sample-telemetry": "Recorded telemetry",
+  "sample-video": "Sample video",
+  camera: "Live camera",
+};
 
 export function SwimphonyConsole() {
   const [fish, setFish] = useState<FishState>(() => simulateFishState(0));
@@ -127,16 +136,32 @@ export function SwimphonyConsole() {
   }
 
   function selectSource(nextSource: ActiveSource) {
+    engineRef.current?.silence();
     setSource(nextSource);
     setTrail([]);
     if (nextSource === "sample-telemetry") {
       setFish(simulateFishState(0));
       setMessage("Recorded telemetry is running.");
     } else {
-      setFish({ ...EMPTY_FISH_STATE, source: "sample-video" });
-      setMessage("Sample video ready for aquarium and fish calibration.");
+      setFish({ ...EMPTY_FISH_STATE, source: nextSource });
+      setMessage(
+        nextSource === "camera"
+          ? "Requesting camera access…"
+          : "Sample video ready for aquarium and fish calibration.",
+      );
     }
   }
+
+  const handleCameraUnavailable = useCallback((reason: string) => {
+    setSource("sample-telemetry");
+    setTrail([]);
+    setFish(simulateFishState(0));
+    setMessage(reason);
+  }, []);
+
+  const handleCameraReady = useCallback(() => {
+    setMessage("Live camera is ready for aquarium and fish calibration.");
+  }, []);
 
   async function generatePreset() {
     setGenerating(true);
@@ -171,6 +196,7 @@ export function SwimphonyConsole() {
 
   return (
     <main className="app-shell" style={virtualLightStyle(frame.light)}>
+      <div className="virtual-light-wash" aria-hidden="true" />
       <header className="app-header">
         <div>
           <p className="eyebrow">ONE CAMERA · LIVING INSTRUMENT</p>
@@ -178,7 +204,7 @@ export function SwimphonyConsole() {
         </div>
         <div className="header-status">
           <span>Source</span>
-          <strong>{source === "sample-video" ? "Sample video" : "Recorded telemetry"}</strong>
+          <strong>{SOURCE_LABELS[source]}</strong>
         </div>
       </header>
 
@@ -189,6 +215,15 @@ export function SwimphonyConsole() {
             frame={frame}
             trail={trail}
             onFishState={acceptFishState}
+          />
+        ) : source === "camera" ? (
+          <LiveCameraTracker
+            fish={fish}
+            frame={frame}
+            trail={trail}
+            onFishState={acceptFishState}
+            onCameraUnavailable={handleCameraUnavailable}
+            onCameraReady={handleCameraReady}
           />
         ) : (
           <AquariumStage fish={fish} frame={frame} trail={trail} />
@@ -220,15 +255,23 @@ export function SwimphonyConsole() {
               >
                 Sample video
               </button>
+              <button
+                type="button"
+                data-active={source === "camera"}
+                onClick={() => selectSource("camera")}
+              >
+                Live camera
+              </button>
             </div>
 
-            <div className="button-row">
+            <div className="button-row audio-row">
               <button className="primary-button" onClick={toggleAudio} type="button">
                 {audioActive ? "Stop audio" : "Start audio"}
               </button>
-              <button className="secondary-button" disabled type="button">
-                Live camera · Phase 2
-              </button>
+              <div className="live-output" data-active={audioActive}>
+                <span>{frame.note ?? "—"}</span>
+                <strong>{audioActive ? "Audio live" : "Audio ready"}</strong>
+              </div>
             </div>
           </section>
 
@@ -276,6 +319,19 @@ export function SwimphonyConsole() {
           </section>
 
           <section className="panel-section compact-section">
+            <div className="light-now">
+              <div
+                className="light-swatch"
+                style={{
+                  backgroundColor: `hsl(${frame.light.hue} ${frame.light.saturation}% ${frame.light.brightness}%)`,
+                }}
+              />
+              <div>
+                <span className="section-kicker">VIRTUAL LIGHT</span>
+                <strong>{Math.round(frame.light.hue)}° · {Math.round(frame.light.brightness)}%</strong>
+              </div>
+              <span className="light-state">{fish.detected ? "Following fish" : "Neutral fade"}</span>
+            </div>
             <span className="section-kicker">CURRENT MAPPING</span>
             <dl className="mapping-list">
               <div>

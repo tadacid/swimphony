@@ -53,6 +53,21 @@ describe("tracking math", () => {
     expect(next.timestamp).toBe(1275);
   });
 
+  it("preserves the active media source in camera tracking", () => {
+    const next = updateFishMotion(
+      { x: 0.4, y: 0.3 },
+      0.018,
+      0.76,
+      1200,
+      fish({ source: "camera" }),
+      "camera",
+    );
+    const lost = holdLostFish(next, 1300, 1, "camera");
+
+    expect(next.source).toBe("camera");
+    expect(lost.source).toBe("camera");
+  });
+
   it("wraps angle differences at the -pi/pi boundary", () => {
     const delta = shortestAngleDelta(Math.PI - 0.1, -Math.PI + 0.1);
     expect(delta).toBeCloseTo(0.2, 5);

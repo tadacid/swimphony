@@ -1,4 +1,4 @@
-import type { FishState } from "@/lib/tracking/types";
+import type { FishState, TrackingSource } from "@/lib/tracking/types";
 import {
   confidenceFromScores,
   holdLostFish,
@@ -136,6 +136,8 @@ export class CanvasFishTracker {
   private previousFish: FishState | undefined;
   private missedFrames = 0;
 
+  constructor(private readonly source: TrackingSource = "sample-video") {}
+
   reset(): void {
     this.previousLuma = null;
     this.previousFish = undefined;
@@ -245,7 +247,12 @@ export class CanvasFishTracker {
     const best = candidates[0];
     if (!best || best.score < 0.36) {
       this.missedFrames += 1;
-      const fish = holdLostFish(this.previousFish, timestamp, this.missedFrames);
+      const fish = holdLostFish(
+        this.previousFish,
+        timestamp,
+        this.missedFrames,
+        this.source,
+      );
       this.previousFish = fish;
       return {
         fish,
@@ -269,6 +276,7 @@ export class CanvasFishTracker {
       confidence,
       timestamp,
       this.previousFish,
+      this.source,
     );
     this.previousFish = fish;
 

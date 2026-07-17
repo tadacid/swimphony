@@ -1,4 +1,4 @@
-import type { FishState } from "@/lib/tracking/types";
+import type { FishState, TrackingSource } from "@/lib/tracking/types";
 import { clamp } from "@/lib/utils/math";
 
 export type Point = { x: number; y: number };
@@ -120,6 +120,7 @@ export function updateFishMotion(
   confidence: number,
   timestamp: number,
   previous?: FishState,
+  source: TrackingSource = "sample-video",
 ): FishState {
   if (!previous || timestamp <= previous.timestamp) {
     return {
@@ -132,7 +133,7 @@ export function updateFishMotion(
       confidence,
       detected: true,
       timestamp,
-      source: "sample-video",
+      source,
     };
   }
 
@@ -158,7 +159,7 @@ export function updateFishMotion(
     confidence,
     detected: true,
     timestamp,
-    source: "sample-video",
+    source,
   };
 }
 
@@ -166,6 +167,7 @@ export function holdLostFish(
   previous: FishState | undefined,
   timestamp: number,
   missedFrames: number,
+  source: TrackingSource = "sample-video",
 ): FishState {
   if (!previous) {
     return {
@@ -178,7 +180,7 @@ export function holdLostFish(
       confidence: 0,
       detected: false,
       timestamp,
-      source: "sample-video",
+      source,
     };
   }
 
@@ -193,6 +195,6 @@ export function holdLostFish(
     detected:
       missedFrames <= TRACKING_TUNING.missedFrameHold && confidence >= 0.35,
     timestamp,
-    source: "sample-video",
+    source,
   };
 }

@@ -35,11 +35,13 @@ Keep this document updated during the primary Codex thread.
 ## Phase 2: audio and Virtual Light
 
 - Prompt used: `prompts/02-phase2-audio-virtual-light.md`
-- Files changed:
-- Commands run:
-- Codex contribution:
-- Human sound/design decisions:
-- Commit hash:
+- Files changed: `src/components/SampleVideoTracker.tsx`, `src/components/SwimphonyConsole.tsx`, `src/lib/audio/tone-engine.ts`, `src/lib/lighting/virtual-light.ts`, `src/lib/tracking/canvas-tracker.ts`, `src/lib/tracking/tracking-math.ts`, `src/lib/tracking/tracking-math.test.ts`, `src/app/globals.css`, `README.md`
+- Commands run: `npm run lint`; `npm test`; `npm run build`; Chrome camera, source-switching, audio-start/stop, Virtual Light, and console-log checks
+- Codex contribution: Added live-camera permission and device selection, reused the Phase 1 Canvas tracker and calibration flow with camera-sourced `FishState`, added safe fallback to recorded telemetry, separated Tone.js note scheduling from tracking updates, added clean silence/stop behavior and a restrained accent voice, and promoted Virtual Light and current note to visible performance indicators.
+- Browser/device check: Chrome recognized the FaceTime HD camera at 640×480 and listed a second camera. The live video clock advanced continuously, then camera → telemetry → sample video switching worked without reload. Audio start/stop state and responsive note/light indicators were verified with no browser warnings or errors. The camera was not aimed at the aquarium, so live-fish contour accuracy still needs an aquarium-side check.
+- Human sound/design decisions: The user accepted the sample-video sound as “めちゃくちゃいい感じ”. Phase 2 keeps that calm character and the existing midnight-aquarium visual direction.
+- Known limitations: Chrome was checked; Safari remains untested. Camera calibration is in memory. Camera denial fallback is implemented but the denial branch was not manually forced after permission was granted.
+- Commit hash: Pending final Phase 2 commit
 
 ## Phase 3: GPT-5.6 AI Conductor
 
