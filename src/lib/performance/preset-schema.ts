@@ -19,6 +19,13 @@ const BasePerformancePresetSchema = z
       z.number().int().min(2).max(5),
       z.number().int().min(3).max(6),
     ]),
+    mapping: z
+      .object({
+        horizontal: z.enum(["pan_hue", "pan_brightness"]),
+        vertical: z.enum(["pitch_brightness", "pitch_hue"]),
+        speed: z.enum(["density_saturation", "density_filter"]),
+      })
+      .strict(),
     synth: z
       .object({
         oscillator: z.enum(["sine", "triangle", "sawtooth", "square"]),

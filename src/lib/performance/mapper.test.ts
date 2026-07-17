@@ -57,4 +57,27 @@ describe("mapFishToPerformance", () => {
       DEFAULT_PRESET.safety.minLightTransitionMs,
     );
   });
+
+  it("uses generated mapping assignments", () => {
+    const generated = {
+      ...DEFAULT_PRESET,
+      mapping: {
+        horizontal: "pan_brightness" as const,
+        vertical: "pitch_hue" as const,
+        speed: "density_filter" as const,
+      },
+    };
+    const leftSlow = mapFishToPerformance(
+      fish({ x: 0.1, y: 0.8, speed: 0.1 }),
+      generated,
+    );
+    const rightFast = mapFishToPerformance(
+      fish({ x: 0.9, y: 0.2, speed: 0.9 }),
+      generated,
+    );
+
+    expect(rightFast.light.brightness).toBeGreaterThan(leftSlow.light.brightness);
+    expect(rightFast.light.hue).toBeGreaterThan(leftSlow.light.hue);
+    expect(rightFast.filterHz).toBeGreaterThan(leftSlow.filterHz);
+  });
 });

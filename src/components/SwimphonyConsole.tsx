@@ -20,14 +20,14 @@ import { simulateFishState } from "@/lib/tracking/simulator";
 import { EMPTY_FISH_STATE, type FishState } from "@/lib/tracking/types";
 
 const SAMPLE_PROMPTS = [
-  "Quiet midnight aquarium with glassy high notes and slow blue light.",
-  "Warm minimal ambient music, soft gold and green, no sudden changes.",
-  "Playful 8-bit ripples, but keep the light calm and never flash.",
+  "静かな深夜の水族館。上に泳いだ時は透明感のある高音。急な方向転換だけ金色のアクセント。点滅はなし。",
+  "暖かく穏やかな朝。丸い音色とゆっくりした金色と緑の光。急な変化はなし。",
+  "少し遊び心のある8-bitの水紋。音は軽やかに、光は落ち着いて絶対に点滅しない。",
 ] as const;
 
 type PresetResponse = {
   preset: PerformancePreset;
-  source: "gpt-5.6" | "fallback";
+  source: "codex-local" | "fallback";
   model: string;
   warning?: string;
 };
@@ -40,6 +40,21 @@ const SOURCE_LABELS: Record<ActiveSource, string> = {
   camera: "Live camera",
 };
 
+const MAPPING_LABELS = {
+  horizontal: {
+    pan_hue: "Pan + hue",
+    pan_brightness: "Pan + brightness",
+  },
+  vertical: {
+    pitch_brightness: "Pitch + brightness",
+    pitch_hue: "Pitch + hue",
+  },
+  speed: {
+    density_saturation: "Density + saturation",
+    density_filter: "Density + filter",
+  },
+} as const;
+
 export function SwimphonyConsole() {
   const [fish, setFish] = useState<FishState>(() => simulateFishState(0));
   const [trail, setTrail] = useState<TrailPoint[]>([]);
@@ -47,10 +62,10 @@ export function SwimphonyConsole() {
   const [preset, setPreset] = useState<PerformancePreset>(DEFAULT_PRESET);
   const [prompt, setPrompt] = useState<string>(SAMPLE_PROMPTS[0]);
   const [audioActive, setAudioActive] = useState(false);
-  const [presetSource, setPresetSource] = useState<"built-in" | "gpt-5.6" | "fallback">(
+  const [presetSource, setPresetSource] = useState<"built-in" | "codex-local" | "fallback">(
     "built-in",
   );
-  const [model, setModel] = useState("gpt-5.6-terra");
+  const [model, setModel] = useState("Local Codex ready");
   const [message, setMessage] = useState(
     "Telemetry demo is running. Switch to Sample video for fish tracking.",
   );
@@ -165,7 +180,7 @@ export function SwimphonyConsole() {
 
   async function generatePreset() {
     setGenerating(true);
-    setMessage("AI Conductor is designing a safe sound-and-light preset…");
+    setMessage("Local Codex is composing a safe sound-and-light preset…");
 
     try {
       const response = await fetch("/api/preset", {
@@ -184,11 +199,11 @@ export function SwimphonyConsole() {
       setModel(data.model);
       setMessage(
         data.warning ??
-          `${data.preset.name} is active. Sound and light now share the new rules.`,
+          `${data.preset.name} is active. Sound and light now share the new local rules.`,
       );
     } catch (error) {
       console.error(error);
-      setMessage("Preset generation failed. The current preset remains active.");
+      setMessage("Local preset generation failed. The current preset remains active.");
     } finally {
       setGenerating(false);
     }
@@ -278,14 +293,14 @@ export function SwimphonyConsole() {
           <section className="panel-section conductor-section">
             <div className="section-heading">
               <div>
-                <span className="section-kicker">GPT-5.6</span>
-                <h2>AI Conductor</h2>
+                <span className="section-kicker">LOCAL CODEX</span>
+                <h2>Codex Conductor</h2>
               </div>
               <span className="model-label">{model}</span>
             </div>
 
             <label className="prompt-label" htmlFor="mood-prompt">
-              Direct the sound and ambient light
+              Describe the sound and ambient light
             </label>
             <textarea
               id="mood-prompt"
@@ -314,7 +329,7 @@ export function SwimphonyConsole() {
               disabled={generating || prompt.trim().length === 0}
               type="button"
             >
-              {generating ? "Designing preset…" : "Generate performance preset"}
+              {generating ? "Composing locally…" : "Compose local performance"}
             </button>
           </section>
 
@@ -336,15 +351,15 @@ export function SwimphonyConsole() {
             <dl className="mapping-list">
               <div>
                 <dt>Horizontal</dt>
-                <dd>Pan + hue</dd>
+                <dd>{MAPPING_LABELS.horizontal[preset.mapping.horizontal]}</dd>
               </div>
               <div>
                 <dt>Vertical</dt>
-                <dd>Pitch + light</dd>
+                <dd>{MAPPING_LABELS.vertical[preset.mapping.vertical]}</dd>
               </div>
               <div>
                 <dt>Speed</dt>
-                <dd>Density + saturation</dd>
+                <dd>{MAPPING_LABELS.speed[preset.mapping.speed]}</dd>
               </div>
               <div>
                 <dt>Confidence</dt>

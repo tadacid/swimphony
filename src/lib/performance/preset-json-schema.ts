@@ -8,6 +8,7 @@ export const PERFORMANCE_PRESET_JSON_SCHEMA = {
     "scale",
     "bpm",
     "octaveRange",
+    "mapping",
     "synth",
     "light",
     "safety",
@@ -29,6 +30,25 @@ export const PERFORMANCE_PRESET_JSON_SCHEMA = {
       minItems: 2,
       maxItems: 2,
       items: { type: "integer", minimum: 2, maximum: 6 },
+    },
+    mapping: {
+      type: "object",
+      additionalProperties: false,
+      required: ["horizontal", "vertical", "speed"],
+      properties: {
+        horizontal: {
+          type: "string",
+          enum: ["pan_hue", "pan_brightness"],
+        },
+        vertical: {
+          type: "string",
+          enum: ["pitch_brightness", "pitch_hue"],
+        },
+        speed: {
+          type: "string",
+          enum: ["density_saturation", "density_filter"],
+        },
+      },
     },
     synth: {
       type: "object",

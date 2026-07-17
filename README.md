@@ -11,7 +11,7 @@ Swimphony is a one-camera web application that tracks a goldfish and converts it
 - A shared `FishState` model for camera, video, dual-camera, and future TrueDepth inputs
 - A Tone.js audio engine with a tracking-independent note scheduler and clean stop behavior
 - A smooth, confidence-aware virtual-light renderer
-- A GPT-5.6 AI Conductor route that generates validated sound-and-light presets
+- A local Codex Conductor that turns natural-language moods into validated sound-and-light presets
 - Scope, architecture, testing, demo, and Codex handoff documents
 - Reference photos of the actual aquarium
 - Phase-by-phase Codex prompts
@@ -28,7 +28,19 @@ npm run dev
 
 Open `http://localhost:3000`, press **Start audio**, and the recorded telemetry simulator will drive the sound and virtual light.
 
-Without `OPENAI_API_KEY`, the AI Conductor returns a safe fallback preset. For the Build Week submission, configure a real key so GPT-5.6 is visibly and meaningfully used.
+The Codex Conductor uses the locally installed Codex CLI and its existing ChatGPT login, so it needs no separate API key. Run `codex login status` to confirm the local session. If Codex is unavailable, Swimphony keeps running with the built-in safe preset.
+
+## Local Codex Conductor
+
+Type a mood in **Codex Conductor** and choose **Compose local performance**. The Next.js server starts a short-lived, read-only Codex App Server session, requests one structured preset, validates it with Zod, then applies its sound, mapping, and light rules. The browser never receives Codex credentials and generated values cannot bypass the aquarium safety limits.
+
+Optional tuning lives in `.env.local`:
+
+```text
+SWIMPHONY_CODEX_MODEL=gpt-5.6-terra
+SWIMPHONY_CODEX_EFFORT=low
+SWIMPHONY_CODEX_TIMEOUT_MS=45000
+```
 
 ## Sample-video tracking
 
@@ -66,7 +78,7 @@ If permission is denied or no camera is available, Swimphony returns to the reco
 - Fish position, speed, direction, area, acceleration, and confidence
 - Sound generation
 - Virtual ambient light
-- GPT-5.6 AI Conductor
+- GPT-5.6 Codex Conductor through the local Codex App Server
 - Demo mode and a polished single-screen interface
 
 ### Optional

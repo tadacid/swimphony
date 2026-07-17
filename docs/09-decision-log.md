@@ -32,6 +32,8 @@
 
 **Reason:** This is meaningful, understandable, and does not put an LLM in a real-time frame loop where it would be expensive and absurd.
 
+**Local implementation:** Personal use runs through Codex App Server with the existing ChatGPT login. The connection is private stdio, read-only, short-lived, schema-constrained, and always backed by a built-in fallback.
+
 ## D-006: Browser-first architecture
 
 **Decision:** Use Next.js, TypeScript, Tone.js, and browser video/canvas processing.

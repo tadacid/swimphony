@@ -1,42 +1,40 @@
-# 12. OpenAI Setup
+# 12. Local Codex Setup
+
+## Authentication
+
+Swimphony uses the local Codex CLI instead of a separate OpenAI API key. Confirm that Codex is installed and signed in with ChatGPT:
+
+```bash
+codex --version
+codex login status
+```
+
+The local Conductor starts `codex app-server` over private stdio for one short-lived generation. It is not exposed over the network.
 
 ## Environment
 
-Create `.env.local` from `.env.example`:
-
-```bash
-cp .env.example .env.local
-```
-
-Set:
+Create `.env.local` from `.env.example` and optionally tune:
 
 ```text
-OPENAI_API_KEY=<your key>
-OPENAI_MODEL=gpt-5.6-terra
+SWIMPHONY_CODEX_MODEL=gpt-5.6-terra
+SWIMPHONY_CODEX_EFFORT=low
+SWIMPHONY_CODEX_TIMEOUT_MS=45000
 ```
 
-The API key must stay server-side. Do not prefix it with `NEXT_PUBLIC_`, place it in client components, print it in logs, or commit `.env.local`.
-
-## Model choice
-
-The documented default is `gpt-5.6-terra` because the AI Conductor is a structured creative-configuration task where cost balance matters. The environment variable allows another available GPT-5.6 variant without changing source code.
-
-## Event cost note
-
-Build Week Codex credits and OpenAI API usage are separate. Check the official event FAQ and your OpenAI platform usage before running repeated API tests.
+`low` keeps mood generation responsive. Every result is constrained by JSON Schema and validated again with Zod before it reaches sound or light.
 
 ## Test prompts
 
 ```text
-Quiet midnight aquarium with glassy high notes and slow blue-green light.
+静かな深夜の水族館。透明感のある高音と青緑のゆっくりした光。点滅なし。
 ```
 
 ```text
-Warm minimal ambient music. Gold accents only on sharp turns. Never flash.
+暖かく穏やかな朝。丸い音色と金色の光。急な変化はなし。
 ```
 
 ```text
-Playful digital ripples, limited to four notes per second, with calm cyan light.
+遊び心のある8-bitの水紋。音は軽やかに、光は落ち着いて絶対に点滅しない。
 ```
 
-Verify that each returns a valid preset, changes the performance clearly, and stays inside safety limits.
+Verify that each returns `source: codex-local`, changes the performance clearly, and stays inside safety limits. If local Codex cannot start or the result is invalid, the route returns the built-in safe preset.

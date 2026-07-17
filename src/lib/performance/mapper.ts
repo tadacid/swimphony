@@ -104,22 +104,35 @@ export function mapFishToPerformance(
     clamp(fish.speed, 0, 1),
   );
 
+  const hueControl = preset.mapping.vertical === "pitch_hue"
+    ? 1 - fish.y
+    : fish.x;
+  const brightnessControl = preset.mapping.horizontal === "pan_brightness"
+    ? fish.x
+    : 1 - fish.y;
+  const saturationControl = preset.mapping.speed === "density_saturation"
+    ? fish.speed
+    : confidenceFactor;
+  const filterControl = preset.mapping.speed === "density_filter"
+    ? fish.speed
+    : clamp(fish.area / 0.03, 0, 1);
+
   const lightHue = lerp(
     preset.light.hueRange[0],
     preset.light.hueRange[1],
-    fish.x,
+    hueControl,
   );
   const lightSaturation =
     lerp(
       preset.light.saturationRange[0],
       preset.light.saturationRange[1],
-      fish.speed,
+      saturationControl,
     ) *
     lerp(0.55, 1, confidenceFactor);
   const requestedBrightness = lerp(
     preset.light.brightnessRange[0],
     preset.light.brightnessRange[1],
-    1 - fish.y,
+    brightnessControl,
   );
 
   return {
@@ -133,7 +146,7 @@ export function mapFishToPerformance(
     filterHz: lerp(
       preset.synth.filterMinHz,
       preset.synth.filterMaxHz,
-      clamp(fish.area / 0.03, 0, 1),
+      filterControl,
     ),
     noteIntervalMs: 1000 / Math.max(0.1, notesPerSecond),
     accent:

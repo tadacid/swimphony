@@ -7,6 +7,11 @@ export const DEFAULT_PRESET: PerformancePreset = {
   scale: "minor_pentatonic",
   bpm: 64,
   octaveRange: [3, 5],
+  mapping: {
+    horizontal: "pan_hue",
+    vertical: "pitch_brightness",
+    speed: "density_saturation",
+  },
   synth: {
     oscillator: "sine",
     attack: 0.45,

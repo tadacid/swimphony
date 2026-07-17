@@ -18,7 +18,7 @@ Mood prompt
     ↓
 Next.js server route
     ↓
-OpenAI Responses API / GPT-5.6
+Local Codex App Server / GPT-5.6
     ↓
 Validated PerformancePreset
     ↓
@@ -30,7 +30,7 @@ Performance mapper
 - Camera access, canvas processing, visual overlay, sound, and Virtual Light live in one runtime.
 - Sample video and camera can share the same processing pipeline.
 - The public demo does not require Python, a local vision server, or WebSocket setup.
-- The OpenAI API remains server-side through a Next.js route.
+- Codex runs server-side through a private stdio connection and is never exposed to the browser.
 
 ## Shared data contract
 
@@ -64,7 +64,7 @@ This keeps future dual-camera and TrueDepth experiments separate from the perfor
 
 ## Failure behavior
 
-- No OpenAI key: return a safe built-in preset and show a setup warning
+- Codex unavailable, signed out, timed out, or invalid: return a safe built-in preset
 - No camera permission: remain in recorded telemetry or sample-video mode
 - Fish lost briefly: hold the previous position, lower confidence, and fade gently
 - Fish lost for longer: stop notes and return light toward a neutral state
@@ -72,7 +72,7 @@ This keeps future dual-camera and TrueDepth experiments separate from the perfor
 
 ## Security
 
-- `OPENAI_API_KEY` and Hue credentials exist only in server environment variables.
+- Codex authentication remains in the local Codex CLI; Hue credentials remain server-only.
 - Do not send secrets to client components.
 - Do not commit `.env.local`.
 - Validate all AI-generated data before use.
