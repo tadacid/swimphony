@@ -144,6 +144,23 @@ export class CanvasFishTracker {
     this.missedFrames = 0;
   }
 
+  seedPosition(point: Point, roi: AquariumRoi, timestamp: number): void {
+    const position = normalizePointToRoi(point, roi);
+    this.previousFish = {
+      x: position.x,
+      y: position.y,
+      speed: 0,
+      direction: 0,
+      acceleration: 0,
+      area: 0.01,
+      confidence: 1,
+      detected: true,
+      timestamp,
+      source: this.source,
+    };
+    this.missedFrames = 0;
+  }
+
   sampleColor(
     context: CanvasRenderingContext2D,
     point: Point,

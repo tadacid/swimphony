@@ -56,9 +56,12 @@ const MAPPING_LABELS = {
 } as const;
 
 export function SwimphonyConsole() {
-  const [fish, setFish] = useState<FishState>(() => simulateFishState(0));
+  const [fish, setFish] = useState<FishState>(() => ({
+    ...EMPTY_FISH_STATE,
+    source: "camera",
+  }));
   const [trail, setTrail] = useState<TrailPoint[]>([]);
-  const [source, setSource] = useState<ActiveSource>("sample-telemetry");
+  const [source, setSource] = useState<ActiveSource>("camera");
   const [preset, setPreset] = useState<PerformancePreset>(DEFAULT_PRESET);
   const [prompt, setPrompt] = useState<string>(SAMPLE_PROMPTS[0]);
   const [audioActive, setAudioActive] = useState(false);
@@ -67,7 +70,7 @@ export function SwimphonyConsole() {
   );
   const [model, setModel] = useState("Local Codex ready");
   const [message, setMessage] = useState(
-    "Telemetry demo is running. Switch to Sample video for fish tracking.",
+    "Requesting the saved live camera and fish calibration…",
   );
   const [generating, setGenerating] = useState(false);
   const engineRef = useRef<ToneEngine | null>(null);

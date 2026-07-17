@@ -5,6 +5,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { TrailPoint } from "@/components/AquariumStage";
 import {
+  CAMERA_CALIBRATION_STORAGE_KEY,
+  parseCameraCalibration,
+  serializeCameraCalibration,
+} from "@/lib/tracking/camera-calibration";
+import {
   CanvasFishTracker,
   drawVideoFrame,
   type ColorProfile,
@@ -98,22 +103,48 @@ function TrackedMedia({
   const trackerRef = useRef(new CanvasFishTracker(mediaKind));
   const dragStartRef = useRef<Point | null>(null);
   const latestResultRef = useRef<TrackingFrame | null>(null);
+  const autoResumeRef = useRef(false);
   const [roi, setRoi] = useState<AquariumRoi>(DEFAULT_AQUARIUM_ROI);
   const [profile, setProfile] = useState<ColorProfile | null>(null);
   const [contour, setContour] = useState<TrackerContour | null>(null);
   const [interaction, setInteraction] = useState<InteractionMode>("roi");
   const [tracking, setTracking] = useState(false);
   const [videoReady, setVideoReady] = useState(false);
+  const [mediaAspectRatio, setMediaAspectRatio] = useState(16 / 9);
   const [showMask, setShowMask] = useState(true);
   const [candidateCount, setCandidateCount] = useState(0);
   const [cameraDevices, setCameraDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState("");
+  const [calibrationLoaded, setCalibrationLoaded] = useState(mediaKind !== "camera");
   const [message, setMessage] = useState(
     "Drag a box around the inside of the aquarium.",
   );
 
   useEffect(() => {
     if (mediaKind !== "camera") return;
+    let cancelled = false;
+    const saved = parseCameraCalibration(
+      window.localStorage.getItem(CAMERA_CALIBRATION_STORAGE_KEY),
+    );
+    queueMicrotask(() => {
+      if (cancelled) return;
+      if (saved) {
+        setRoi(saved.roi);
+        setProfile(saved.profile);
+        setSelectedDeviceId(saved.deviceId);
+        setInteraction("idle");
+        autoResumeRef.current = true;
+        setMessage("Saved aquarium and fish calibration loaded.");
+      }
+      setCalibrationLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [mediaKind]);
+
+  useEffect(() => {
+    if (mediaKind !== "camera" || !calibrationLoaded) return;
     let cancelled = false;
     let stream: MediaStream | null = null;
     const videoElement = videoRef.current;
@@ -135,6 +166,9 @@ function TrackedMedia({
         if (!video) return;
         video.srcObject = stream;
         await video.play();
+        if (video.videoWidth && video.videoHeight) {
+          setMediaAspectRatio(video.videoWidth / video.videoHeight);
+        }
         const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
           (device) => device.kind === "videoinput",
         );
@@ -147,6 +181,18 @@ function TrackedMedia({
         onCameraReady?.();
       } catch (error) {
         console.error(error);
+        if (
+          !cancelled &&
+          selectedDeviceId &&
+          error instanceof DOMException &&
+          (error.name === "NotFoundError" || error.name === "OverconstrainedError")
+        ) {
+          window.localStorage.removeItem(CAMERA_CALIBRATION_STORAGE_KEY);
+          setProfile(null);
+          setSelectedDeviceId("");
+          autoResumeRef.current = false;
+          return;
+        }
         if (!cancelled) onCameraUnavailable?.(cameraFailureMessage(error));
       }
     }
@@ -157,7 +203,7 @@ function TrackedMedia({
       stream?.getTracks().forEach((track) => track.stop());
       if (videoElement) videoElement.srcObject = null;
     };
-  }, [mediaKind, onCameraReady, onCameraUnavailable, selectedDeviceId]);
+  }, [calibrationLoaded, mediaKind, onCameraReady, onCameraUnavailable, selectedDeviceId]);
 
   const processCurrentFrame = useCallback(
     (timestamp: number, activeProfile: ColorProfile) => {
@@ -211,6 +257,22 @@ function TrackedMedia({
   }, [mediaKind, processCurrentFrame, profile, tracking]);
 
   useEffect(() => {
+    if (
+      mediaKind !== "camera" ||
+      !videoReady ||
+      !profile ||
+      !autoResumeRef.current
+    ) {
+      return;
+    }
+    autoResumeRef.current = false;
+    trackerRef.current.reset();
+    setInteraction("idle");
+    setTracking(true);
+    setMessage("Saved calibration restored. Tracking started automatically.");
+  }, [mediaKind, profile, videoReady]);
+
+  useEffect(() => {
     const video = videoRef.current;
     return () => video?.pause();
   }, []);
@@ -245,13 +307,20 @@ function TrackedMedia({
     const context = drawVideoFrame(video, canvas);
     if (!context) return;
     const sampled = trackerRef.current.sampleColor(context, point);
+    const sampledAt = mediaKind === "camera"
+      ? performance.now()
+      : video.currentTime * 1000;
     trackerRef.current.reset();
+    trackerRef.current.seedPosition(point, roi, sampledAt);
     setProfile(sampled);
+    if (mediaKind === "camera") {
+      window.localStorage.setItem(
+        CAMERA_CALIBRATION_STORAGE_KEY,
+        serializeCameraCalibration(selectedDeviceId, roi, sampled),
+      );
+    }
     setInteraction("idle");
-    processCurrentFrame(
-      mediaKind === "camera" ? performance.now() : video.currentTime * 1000,
-      sampled,
-    );
+    processCurrentFrame(sampledAt, sampled);
     setMessage("Color captured. Check the mask, then confirm and start tracking.");
   }
 
@@ -266,6 +335,10 @@ function TrackedMedia({
     dragStartRef.current = null;
     setRoi(nextRoi);
     setProfile(null);
+    if (mediaKind === "camera") {
+      window.localStorage.removeItem(CAMERA_CALIBRATION_STORAGE_KEY);
+      autoResumeRef.current = false;
+    }
     setContour(null);
     trackerRef.current.reset();
     if (maskCanvasRef.current) drawMask(maskCanvasRef.current, null, false);
@@ -317,6 +390,9 @@ function TrackedMedia({
     if (!video) return;
     if (mediaKind === "camera") return;
     setVideoReady(true);
+    if (video.videoWidth && video.videoHeight) {
+      setMediaAspectRatio(video.videoWidth / video.videoHeight);
+    }
     video.pause();
     if (video.duration > 4) video.currentTime = 3;
     setMessage("Video ready. Drag a box around the aquarium interior.");
@@ -332,7 +408,7 @@ function TrackedMedia({
 
   return (
     <section className="aquarium-card sample-video-card" aria-label={`${sourceLabel} tracker`}>
-      <div className="sample-video-frame">
+      <div className="sample-video-frame" style={{ aspectRatio: mediaAspectRatio }}>
         <video
           ref={videoRef}
           src={mediaKind === "sample-video" ? "/demo/goldfish-demo.mp4" : undefined}
@@ -431,6 +507,9 @@ function TrackedMedia({
               onChange={(event) => {
                 setTracking(false);
                 trackerRef.current.reset();
+                setProfile(null);
+                window.localStorage.removeItem(CAMERA_CALIBRATION_STORAGE_KEY);
+                autoResumeRef.current = false;
                 setSelectedDeviceId(event.target.value);
               }}
             >

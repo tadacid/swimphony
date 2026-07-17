@@ -21,7 +21,7 @@ This makes a fixed aquarium ROI mandatory and color-plus-motion tracking a sensi
 4. User clicks the fish.
 5. The tracker samples a small patch and derives initial HSV or Lab statistics.
 6. The app previews the candidate mask and lets the user adjust tolerance only if necessary.
-7. Calibration values remain in memory and may be exported as JSON later.
+7. Live-camera ROI, color profile, and camera choice are validated and stored in browser-local storage for automatic restart.
 
 ## Processing pipeline
 

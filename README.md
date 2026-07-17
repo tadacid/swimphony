@@ -58,9 +58,11 @@ The tracker runs at about 12 Hz while video playback stays smooth. The supplied 
 
 ## Live-camera tracking
 
-1. Choose **Live camera** and allow camera access.
+1. Allow camera access. Live camera is the default source.
 2. Select the intended camera if more than one is connected.
 3. Drag the aquarium ROI, sample the fish color, and confirm tracking exactly as in sample-video mode.
+
+The selected camera, aquarium ROI, and fish color are saved locally. The next launch restores them and starts tracking automatically. The video frame also follows the camera's real aspect ratio so clicking the fish maps to the correct source pixel. Browser audio still requires one **Start audio** click after a full reload.
 
 If permission is denied or no camera is available, Swimphony returns to the recorded telemetry demo without reloading.
 

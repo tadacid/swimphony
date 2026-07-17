@@ -40,7 +40,8 @@ Keep this document updated during the primary Codex thread.
 - Codex contribution: Added live-camera permission and device selection, reused the Phase 1 Canvas tracker and calibration flow with camera-sourced `FishState`, added safe fallback to recorded telemetry, separated Tone.js note scheduling from tracking updates, added clean silence/stop behavior and a restrained accent voice, and promoted Virtual Light and current note to visible performance indicators.
 - Browser/device check: Chrome recognized the FaceTime HD camera at 640×480 and listed a second camera. The live video clock advanced continuously, then camera → telemetry → sample video switching worked without reload. Audio start/stop state and responsive note/light indicators were verified with no browser warnings or errors. The camera was not aimed at the aquarium, so live-fish contour accuracy still needs an aquarium-side check.
 - Human sound/design decisions: The user accepted the sample-video sound as “めちゃくちゃいい感じ”. Phase 2 keeps that calm character and the existing midnight-aquarium visual direction.
-- Known limitations: Chrome was checked; Safari remains untested. Camera calibration is in memory. Camera denial fallback is implemented but the denial branch was not manually forced after permission was granted.
+- Known limitations: Chrome was checked; Safari remains untested. Camera denial fallback is implemented but the denial branch was not manually forced after permission was granted.
+- Follow-up: Camera choice, ROI, and fish color are now validated and saved in browser-local storage. Full reload restores the Switch camera and starts tracking automatically. The camera frame now uses its real 4:3 aspect ratio, fixing click-to-source coordinate drift. Dark-scene initialization is anchored to the sampled point. Browser audio still requires one user click after reload.
 - Commit hash: `abaaf03`
 
 ## Phase 3: GPT-5.6 AI Conductor
