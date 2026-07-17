@@ -28,6 +28,8 @@ npm run dev
 
 Open `http://localhost:3000`, press **Start audio**, and the recorded telemetry simulator will drive the sound and virtual light.
 
+On this Mac, double-click `/Users/tada/codex-work/Swimphony/Swimphony.app` instead. It starts the local server when needed and opens Swimphony in Chrome. Startup logs are written to `/tmp/swimphony-dev.log`.
+
 The Codex Conductor uses the locally installed Codex CLI and its existing ChatGPT login, so it needs no separate API key. Run `codex login status` to confirm the local session. If Codex is unavailable, Swimphony keeps running with the built-in safe preset.
 
 ## Local Codex Conductor
