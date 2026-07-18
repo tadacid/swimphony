@@ -20,6 +20,15 @@ export type ColorProfile = {
   valueTolerance: number;
 };
 
+export const GOLDFISH_RECOVERY_PROFILE: ColorProfile = {
+  hue: 40,
+  saturation: 0.72,
+  value: 0.68,
+  hueTolerance: 32,
+  saturationTolerance: 0.55,
+  valueTolerance: 0.6,
+};
+
 export type TrackerContour = {
   x: number;
   y: number;

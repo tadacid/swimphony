@@ -12,6 +12,7 @@ import {
 import {
   CanvasFishTracker,
   drawVideoFrame,
+  GOLDFISH_RECOVERY_PROFILE,
   type ColorProfile,
   type TrackerContour,
   type TrackingFrame,
@@ -104,6 +105,7 @@ function TrackedMedia({
   const dragStartRef = useRef<Point | null>(null);
   const latestResultRef = useRef<TrackingFrame | null>(null);
   const autoResumeRef = useRef(false);
+  const lostFrameCountRef = useRef(0);
   const [roi, setRoi] = useState<AquariumRoi>(DEFAULT_AQUARIUM_ROI);
   const [profile, setProfile] = useState<ColorProfile | null>(null);
   const [contour, setContour] = useState<TrackerContour | null>(null);
@@ -212,12 +214,39 @@ function TrackedMedia({
       if (!video || !analysisCanvas) return null;
       const context = drawVideoFrame(video, analysisCanvas);
       if (!context) return null;
-      const result = trackerRef.current.process(
+      let result = trackerRef.current.process(
         context,
         roi,
         activeProfile,
         timestamp,
       );
+      if (mediaKind === "camera" && !result.fish.detected) {
+        lostFrameCountRef.current += 1;
+        if (lostFrameCountRef.current >= 12) {
+          lostFrameCountRef.current = 0;
+          const recovered = trackerRef.current.process(
+            context,
+            roi,
+            GOLDFISH_RECOVERY_PROFILE,
+            timestamp,
+          );
+          if (recovered.fish.detected) {
+            result = recovered;
+            setProfile(GOLDFISH_RECOVERY_PROFILE);
+            window.localStorage.setItem(
+              CAMERA_CALIBRATION_STORAGE_KEY,
+              serializeCameraCalibration(
+                selectedDeviceId,
+                roi,
+                GOLDFISH_RECOVERY_PROFILE,
+              ),
+            );
+            setMessage("Goldfish color recovered automatically. Tracking and sound resumed.");
+          }
+        }
+      } else {
+        lostFrameCountRef.current = 0;
+      }
       latestResultRef.current = result;
       setContour(result.contour);
       setCandidateCount(result.candidateCount);
@@ -227,7 +256,7 @@ function TrackedMedia({
       onFishState(result.fish);
       return result;
     },
-    [onFishState, roi, showMask],
+    [mediaKind, onFishState, roi, selectedDeviceId, showMask],
   );
 
   useEffect(() => {
