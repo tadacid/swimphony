@@ -15,14 +15,14 @@ export function safeHueFrame(light: LightFrame, confidence: number): LightFrame 
     return {
       hue: light.hue,
       saturation: Math.min(65, Math.max(42, light.saturation * 0.8)),
-      brightness: Math.min(38, Math.max(20, light.brightness * 0.85)),
+      brightness: Math.min(75, Math.max(50, light.brightness * 0.85)),
       transitionMs: Math.max(2400, light.transitionMs),
     };
   }
   return {
     hue: light.hue,
     saturation: Math.min(90, light.saturation),
-    brightness: Math.min(55, light.brightness),
+    brightness: Math.min(100, light.brightness),
     transitionMs: Math.max(1500, light.transitionMs),
   };
 }

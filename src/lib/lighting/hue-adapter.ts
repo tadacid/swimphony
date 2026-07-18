@@ -191,7 +191,7 @@ export class LocalHueAdapter implements LightingAdapter {
     this.lastUpdateAt = now;
 
     const safe = safeHueFrame(light, confidence);
-    const xy = hslToHueXy(safe.hue, safe.saturation, safe.brightness);
+    const xy = hslToHueXy(safe.hue, safe.saturation, 50);
     await hueRequest(
       this.config,
       `/clip/v2/resource/grouped_light/${encodeURIComponent(this.config.groupedLightId)}`,

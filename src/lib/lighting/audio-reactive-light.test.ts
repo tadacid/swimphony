@@ -44,7 +44,7 @@ describe("audio-reactive light", () => {
       500,
     );
     expect(light.saturation).toBeLessThanOrEqual(90);
-    expect(light.brightness).toBeLessThanOrEqual(55);
+    expect(light.brightness).toBe(100);
     expect(light.transitionMs).toBeGreaterThanOrEqual(1500);
   });
 

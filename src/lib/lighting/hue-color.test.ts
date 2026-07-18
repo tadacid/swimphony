@@ -19,16 +19,16 @@ describe("Hue color safety", () => {
     );
     expect(medium.saturation).toBeGreaterThanOrEqual(42);
     expect(medium.saturation).toBeLessThanOrEqual(65);
-    expect(medium.brightness).toBeGreaterThanOrEqual(20);
-    expect(medium.brightness).toBeLessThanOrEqual(38);
+    expect(medium.brightness).toBeGreaterThanOrEqual(50);
+    expect(medium.brightness).toBeLessThanOrEqual(75);
     expect(medium.transitionMs).toBeGreaterThanOrEqual(2400);
 
     const high = safeHueFrame(
-      { hue: 190, saturation: 90, brightness: 55, transitionMs: 1600 },
+      { hue: 190, saturation: 90, brightness: 100, transitionMs: 1600 },
       0.9,
     );
     expect(high.saturation).toBeLessThanOrEqual(90);
-    expect(high.brightness).toBeLessThanOrEqual(55);
+    expect(high.brightness).toBe(100);
     expect(high.transitionMs).toBeGreaterThanOrEqual(1500);
   });
 

@@ -64,9 +64,9 @@ export function audioReactiveLight(
       90,
     ),
     brightness: clamp(
-      Math.max(22, frame.light.brightness) + energy * 20 + (frame.accent ? 5 : 0),
-      18,
-      55,
+      Math.max(70, frame.light.brightness) + energy * 25 + (frame.accent ? 5 : 0),
+      65,
+      100,
     ),
     transitionMs: Math.round(clamp(1900 - energy * 350, 1500, 1900)),
   };

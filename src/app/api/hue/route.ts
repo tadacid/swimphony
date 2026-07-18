@@ -8,7 +8,7 @@ const HueUpdateSchema = z.object({
   light: z.object({
     hue: z.number().min(0).max(360),
     saturation: z.number().min(0).max(100),
-    brightness: z.number().min(0).max(60),
+    brightness: z.number().min(0).max(100),
     transitionMs: z.number().int().min(1200).max(6000),
   }).strict(),
   confidence: z.number().min(0).max(1),
