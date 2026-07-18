@@ -514,6 +514,48 @@ textarea:focus {
   font-size: 0.62rem;
 }
 
+.hue-connection {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: -3px 0 21px;
+  padding: 12px 13px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.hue-connection[data-connected="true"] {
+  border-color: rgba(220, 255, 114, 0.35);
+}
+
+.hue-connection .section-kicker {
+  display: block;
+  margin-bottom: 3px;
+}
+
+.hue-connection p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.68rem;
+}
+
+.hue-connection button {
+  min-width: 76px;
+  padding: 8px 10px;
+  border: 1px solid rgba(220, 255, 114, 0.22);
+  background: rgba(220, 255, 114, 0.08);
+  color: var(--accent);
+  font-size: 0.68rem;
+}
+
+.hue-connection button:disabled {
+  border-color: var(--line);
+  color: var(--muted);
+  opacity: 0.55;
+}
+
 .mapping-list {
   display: grid;
   gap: 11px;

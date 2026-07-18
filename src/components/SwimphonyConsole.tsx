@@ -32,6 +32,13 @@ type PresetResponse = {
   warning?: string;
 };
 
+type HueStatus = {
+  available: boolean;
+  enabled: boolean;
+  connected: boolean;
+  message: string;
+};
+
 type ActiveSource = "sample-telemetry" | "sample-video" | "camera";
 
 const SOURCE_LABELS: Record<ActiveSource, string> = {
@@ -73,7 +80,15 @@ export function SwimphonyConsole() {
     "Requesting the saved live camera and fish calibration…",
   );
   const [generating, setGenerating] = useState(false);
+  const [hueStatus, setHueStatus] = useState<HueStatus>({
+    available: false,
+    enabled: false,
+    connected: false,
+    message: "Checking Hue…",
+  });
+  const [hueBusy, setHueBusy] = useState(false);
   const engineRef = useRef<ToneEngine | null>(null);
+  const lastHueUpdateRef = useRef(0);
 
   const frame = useMemo(
     () => mapFishToPerformance(fish, preset),
@@ -127,6 +142,59 @@ export function SwimphonyConsole() {
       engineRef.current?.applyPreset(preset);
     }
   }, [audioActive, preset]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/hue")
+      .then(async (response) => {
+        if (!response.ok) throw new Error("Hue status failed");
+        return response.json() as Promise<HueStatus>;
+      })
+      .then((status) => {
+        if (!cancelled) setHueStatus(status);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setHueStatus({
+            available: false,
+            enabled: false,
+            connected: false,
+            message: "Hue status unavailable.",
+          });
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hueStatus.enabled) return;
+    const now = performance.now();
+    if (now - lastHueUpdateRef.current < 1000) return;
+    lastHueUpdateRef.current = now;
+    void fetch("/api/hue", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ light: frame.light, confidence: fish.confidence }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          setHueStatus((status) => ({
+            ...status,
+            connected: false,
+            message: "Hue paused; Virtual Light is still running.",
+          }));
+        }
+      })
+      .catch(() => {
+        setHueStatus((status) => ({
+          ...status,
+          connected: false,
+          message: "Hue paused; Virtual Light is still running.",
+        }));
+      });
+  }, [fish.confidence, frame.light, hueStatus.enabled]);
 
   useEffect(() => {
     return () => engineRef.current?.stop();
@@ -209,6 +277,28 @@ export function SwimphonyConsole() {
       setMessage("Local preset generation failed. The current preset remains active.");
     } finally {
       setGenerating(false);
+    }
+  }
+
+  async function toggleHue() {
+    if (!hueStatus.available || hueBusy) return;
+    setHueBusy(true);
+    try {
+      const response = await fetch("/api/hue", {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ enabled: !hueStatus.enabled }),
+      });
+      if (!response.ok) throw new Error("Hue toggle failed");
+      setHueStatus(await response.json() as HueStatus);
+    } catch {
+      setHueStatus((status) => ({
+        ...status,
+        connected: false,
+        message: "Hue could not be changed.",
+      }));
+    } finally {
+      setHueBusy(false);
     }
   }
 
@@ -350,6 +440,19 @@ export function SwimphonyConsole() {
               </div>
               <span className="light-state">{fish.detected ? "Following fish" : "Neutral fade"}</span>
             </div>
+            <div className="hue-connection" data-connected={hueStatus.connected}>
+              <div>
+                <span className="section-kicker">PHILIPS HUE</span>
+                <p>{hueStatus.message}</p>
+              </div>
+              <button
+                type="button"
+                onClick={toggleHue}
+                disabled={!hueStatus.available || hueBusy}
+              >
+                {hueBusy ? "Checking…" : hueStatus.enabled ? "Disable" : "Enable"}
+              </button>
+            </div>
             <span className="section-kicker">CURRENT MAPPING</span>
             <dl className="mapping-list">
               <div>
@@ -377,7 +480,7 @@ export function SwimphonyConsole() {
         <p>{message}</p>
         <div>
           <span>Hue</span>
-          <strong>Virtual only</strong>
+          <strong>{hueStatus.enabled && hueStatus.connected ? "Room light live" : "Virtual only"}</strong>
         </div>
       </footer>
     </main>
