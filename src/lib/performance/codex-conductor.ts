@@ -45,6 +45,16 @@ Safety and behavior:
 - Return JSON only. Keep name and description concise.
 `.trim();
 
+const CHATGPT_CODEX_PATH = "/Applications/ChatGPT.app/Contents/Resources/codex";
+
+export function resolveCodexExecutable(
+  configured = process.env.SWIMPHONY_CODEX_BIN?.trim(),
+  platform = process.platform,
+): string {
+  if (configured) return configured;
+  return platform === "darwin" ? CHATGPT_CODEX_PATH : "codex";
+}
+
 function timeoutMs(): number {
   const configured = Number(process.env.SWIMPHONY_CODEX_TIMEOUT_MS ?? 45000);
   return Math.min(90000, Math.max(10000, Number.isFinite(configured) ? configured : 45000));
@@ -79,7 +89,7 @@ export async function generatePresetWithCodex(
 
   return new Promise((resolve, reject) => {
     const child = spawn(
-      "codex",
+      resolveCodexExecutable(),
       ["app-server", "--listen", "stdio://"],
       {
         cwd: tmpdir(),
