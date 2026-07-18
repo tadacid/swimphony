@@ -1,4 +1,8 @@
 import type { PerformanceFrame } from "@/lib/performance/mapper";
+import {
+  MODE_PRESETS,
+  type SoundMode,
+} from "@/lib/performance/mode-presets";
 import type { PerformancePreset } from "@/lib/performance/preset-schema";
 
 // Tone.js objects are intentionally kept behind this small adapter.
@@ -23,10 +27,12 @@ export class ToneEngine {
   private lastNoteAt = 0;
   private started = false;
   private currentPreset: PerformancePreset | null = null;
+  private currentMode: SoundMode = "original";
+  private stepIndex = 0;
 
-  async start(preset: PerformancePreset): Promise<void> {
+  async start(preset: PerformancePreset, mode: SoundMode = "original"): Promise<void> {
     if (this.started) {
-      this.applyPreset(preset);
+      this.applyPreset(preset, mode);
       return;
     }
 
@@ -70,12 +76,17 @@ export class ToneEngine {
     this.gain = gain;
     this.accentSynth = accentSynth;
     this.started = true;
-    this.applyPreset(preset);
+    this.applyPreset(preset, mode);
     this.schedulerId = setInterval(() => this.scheduleNote(), 50);
   }
 
-  applyPreset(preset: PerformancePreset): void {
+  applyPreset(preset: PerformancePreset, mode: SoundMode = "original"): void {
+    if (this.currentMode !== mode) {
+      this.stepIndex = 0;
+      this.lastNoteAt = 0;
+    }
     this.currentPreset = preset;
+    this.currentMode = mode;
     this.synth?.set({
       oscillator: { type: preset.synth.oscillator },
       envelope: {
@@ -83,6 +94,12 @@ export class ToneEngine {
         release: preset.synth.release,
       },
     });
+    this.accentSynth?.set({
+      oscillator: {
+        type: mode === "acid" || mode === "psytrance" ? "sawtooth" : "triangle",
+      },
+    });
+    this.filter?.Q.rampTo(mode === "acid" ? 12 : mode === "psytrance" ? 6 : 1, 0.35);
     this.reverb?.wet.rampTo(preset.synth.reverb, 0.5);
   }
 
@@ -111,30 +128,80 @@ export class ToneEngine {
       return;
     }
 
+    const profile = MODE_PRESETS[this.currentMode].rhythm;
+    const beatSeconds = 60 / this.currentPreset.bpm;
+    const intervalMs = Math.max(
+      beatSeconds * 1000 * profile.minimumBeatFraction,
+      frame.noteIntervalMs * profile.intervalScale,
+    );
     const nowMs = performance.now();
-    if (nowMs - this.lastNoteAt < frame.noteIntervalMs) {
+    if (nowMs - this.lastNoteAt < intervalMs) {
       return;
     }
 
-    const durationSeconds = Math.min(
-      2.5,
-      Math.max(0.16, (60 / this.currentPreset.bpm) * 0.75),
-    );
+    const step = this.stepIndex;
+    const offset = profile.sequence[step % profile.sequence.length] ?? 0;
+    const note = this.transpose(frame.note, offset);
+    const durationSeconds = Math.min(4.5, Math.max(0.05, beatSeconds * profile.gateBeats));
+    const chordEvery = profile.chordEvery;
+    const notes = chordEvery > 0 && step % chordEvery === 0
+      ? this.chordFor(note)
+      : note;
     this.synth.triggerAttackRelease(
-      frame.note,
+      notes,
       durationSeconds,
       this.tone.now(),
-      frame.velocity,
+      Array.isArray(notes) ? Math.min(0.34, frame.velocity * 0.72) : frame.velocity,
     );
-    if (frame.accent) {
+
+    if (this.currentMode === "acid") {
+      const sweep = 0.3 + ((step % 4) / 3) * 0.7;
+      this.filter?.frequency.rampTo(
+        Math.max(180, Math.min(frame.filterHz * sweep, this.currentPreset.synth.filterMaxHz)),
+        0.035,
+      );
+    }
+
+    if (profile.bassEvery > 0 && step % profile.bassEvery === 0) {
       this.accentSynth?.triggerAttackRelease(
-        frame.note,
+        this.transpose(note, -12),
+        Math.max(0.06, Math.min(0.42, beatSeconds * 0.38)),
+        this.tone.now(),
+        Math.min(0.3, frame.velocity * 0.58),
+      );
+    }
+
+    const rhythmicAccent = profile.accentEvery > 0 && step % profile.accentEvery === 0;
+    if (frame.accent || rhythmicAccent) {
+      this.accentSynth?.triggerAttackRelease(
+        note,
         "16n",
         this.tone.now() + 0.035,
         Math.min(0.34, frame.velocity * 0.5),
       );
     }
+
+    if (this.currentMode === "dub") {
+      this.accentSynth?.triggerAttackRelease(
+        note,
+        Math.min(0.5, beatSeconds * 0.55),
+        this.tone.now() + beatSeconds * 0.72,
+        Math.min(0.18, frame.velocity * 0.32),
+      );
+    }
+
+    this.stepIndex += 1;
     this.lastNoteAt = nowMs;
+  }
+
+  private transpose(note: string, semitones: number): string {
+    if (!this.tone || semitones === 0) return note;
+    return this.tone.Frequency(note).transpose(semitones).toNote();
+  }
+
+  private chordFor(note: string): string[] {
+    const intervals = this.currentMode === "gagaku" ? [0, 7, 12] : [0, 4, 7];
+    return intervals.map((interval) => this.transpose(note, interval));
   }
 
   silence(): void {
@@ -164,6 +231,8 @@ export class ToneEngine {
     this.tone = null;
     this.latestFrame = null;
     this.currentPreset = null;
+    this.currentMode = "original";
+    this.stepIndex = 0;
     this.started = false;
   }
 }

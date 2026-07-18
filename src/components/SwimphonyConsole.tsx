@@ -16,6 +16,11 @@ import { audioReactiveLight } from "@/lib/lighting/audio-reactive-light";
 import { virtualLightStyle } from "@/lib/lighting/virtual-light";
 import { DEFAULT_PRESET } from "@/lib/performance/default-preset";
 import { mapFishToPerformance } from "@/lib/performance/mapper";
+import {
+  MODE_OPTIONS,
+  MODE_PRESETS,
+  type SoundMode,
+} from "@/lib/performance/mode-presets";
 import type { PerformancePreset } from "@/lib/performance/preset-schema";
 import { simulateFishState } from "@/lib/tracking/simulator";
 import { EMPTY_FISH_STATE, type FishState } from "@/lib/tracking/types";
@@ -71,6 +76,7 @@ export function SwimphonyConsole() {
   const [trail, setTrail] = useState<TrailPoint[]>([]);
   const [source, setSource] = useState<ActiveSource>("camera");
   const [preset, setPreset] = useState<PerformancePreset>(DEFAULT_PRESET);
+  const [soundMode, setSoundMode] = useState<SoundMode>("original");
   const [prompt, setPrompt] = useState<string>(SAMPLE_PROMPTS[0]);
   const [audioActive, setAudioActive] = useState(false);
   const [presetSource, setPresetSource] = useState<"built-in" | "codex-local" | "fallback">(
@@ -145,9 +151,9 @@ export function SwimphonyConsole() {
 
   useEffect(() => {
     if (audioActive) {
-      engineRef.current?.applyPreset(preset);
+      engineRef.current?.applyPreset(preset, soundMode);
     }
-  }, [audioActive, preset]);
+  }, [audioActive, preset, soundMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -217,7 +223,7 @@ export function SwimphonyConsole() {
 
     try {
       const engine = new ToneEngine();
-      await engine.start(preset);
+      await engine.start(preset, soundMode);
       engineRef.current = engine;
       setAudioActive(true);
       setMessage("Audio is live. The current FishState now controls the synth.");
@@ -242,6 +248,15 @@ export function SwimphonyConsole() {
           : "Sample video ready for aquarium and fish calibration.",
       );
     }
+  }
+
+  function selectSoundMode(nextMode: SoundMode) {
+    const option = MODE_PRESETS[nextMode];
+    setSoundMode(nextMode);
+    setPreset(option.preset);
+    setPresetSource("built-in");
+    setModel(`${option.label} mode`);
+    setMessage(`${option.preset.name} is active. ${option.cue}.`);
   }
 
   const handleCameraUnavailable = useCallback((reason: string) => {
@@ -396,6 +411,24 @@ export function SwimphonyConsole() {
               <span className="source-badge">{presetSource}</span>
             </div>
             <p className="preset-description">{preset.description}</p>
+
+            <div className="mode-heading">
+              <span className="section-kicker">MODE PRESETS</span>
+              <strong>{MODE_PRESETS[soundMode].cue}</strong>
+            </div>
+            <div className="mode-switcher" aria-label="Sound mode preset">
+              {MODE_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  data-active={soundMode === option.id}
+                  onClick={() => selectSoundMode(option.id)}
+                  title={option.cue}
+                >
+                  {option.label}
+                </button>
+              ))}
+            </div>
 
             <div className="source-switcher" aria-label="Tracking source">
               <button

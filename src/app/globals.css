@@ -388,6 +388,63 @@ button:disabled {
   gap: 8px;
 }
 
+.mode-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 7px;
+}
+
+.mode-heading .section-kicker {
+  margin: 0;
+}
+
+.mode-heading strong {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 540;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mode-switcher {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 3px;
+  margin: 0 0 10px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.mode-switcher button {
+  min-height: 34px;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 0.68rem;
+  transition:
+    background-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.mode-switcher button:hover:not([data-active="true"]) {
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.mode-switcher button[data-active="true"] {
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 720;
+}
+
 .source-switcher {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
