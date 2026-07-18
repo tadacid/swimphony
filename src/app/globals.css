@@ -99,6 +99,54 @@ button:disabled {
   text-align: right;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.quit-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(244, 247, 239, 0.2);
+  border-radius: 999px;
+  background: rgba(7, 11, 12, 0.54);
+  color: rgba(244, 247, 239, 0.76);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  transition:
+    color 180ms ease,
+    border-color 180ms ease,
+    background-color 180ms ease,
+    transform 180ms ease;
+}
+
+.quit-button span {
+  color: #ff8d7d;
+  font-size: 0.68rem;
+  line-height: 1;
+}
+
+.quit-button:hover:not(:disabled) {
+  border-color: rgba(255, 141, 125, 0.55);
+  background: rgba(255, 141, 125, 0.1);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+
+.quit-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.quit-button:disabled {
+  opacity: 0.52;
+}
+
 .header-status span,
 .app-footer span {
   color: var(--muted);
@@ -904,6 +952,10 @@ textarea:focus {
 
   .header-status {
     display: none;
+  }
+
+  .header-actions {
+    margin-left: auto;
   }
 
   .aquarium-card,

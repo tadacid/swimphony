@@ -88,6 +88,7 @@ export function SwimphonyConsole() {
     message: "Checking Hue…",
   });
   const [hueBusy, setHueBusy] = useState(false);
+  const [quitting, setQuitting] = useState(false);
   const engineRef = useRef<ToneEngine | null>(null);
   const lastHueUpdateRef = useRef(0);
 
@@ -307,6 +308,37 @@ export function SwimphonyConsole() {
     }
   }
 
+  async function quitApplication() {
+    if (quitting) return;
+    setQuitting(true);
+    engineRef.current?.stop();
+    engineRef.current = null;
+    setAudioActive(false);
+    setMessage("Swimphonyを終了しています…");
+    const shouldDisableHue = hueStatus.available && hueStatus.enabled;
+    setHueStatus((status) => ({
+      ...status,
+      enabled: false,
+      message: "Hue control stopped.",
+    }));
+
+    try {
+      if (shouldDisableHue) {
+        await fetch("/api/hue", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ enabled: false }),
+        });
+      }
+
+      await fetch("/api/shutdown", { method: "POST" });
+      window.close();
+    } catch {
+      setQuitting(false);
+      setMessage("終了できませんでした。もう一度押してください。");
+    }
+  }
+
   return (
     <main className="app-shell" style={virtualLightStyle(performanceLight)}>
       <div className="virtual-light-wash" aria-hidden="true" />
@@ -315,9 +347,21 @@ export function SwimphonyConsole() {
           <p className="eyebrow">ONE CAMERA · LIVING INSTRUMENT</p>
           <h1>Swimphony</h1>
         </div>
-        <div className="header-status">
-          <span>Source</span>
-          <strong>{SOURCE_LABELS[source]}</strong>
+        <div className="header-actions">
+          <div className="header-status">
+            <span>Source</span>
+            <strong>{SOURCE_LABELS[source]}</strong>
+          </div>
+          <button
+            className="quit-button"
+            type="button"
+            onClick={quitApplication}
+            disabled={quitting}
+            aria-label="Swimphonyを終了"
+          >
+            <span aria-hidden="true">⏻</span>
+            {quitting ? "終了中…" : "アプリ終了"}
+          </button>
         </div>
       </header>
 
