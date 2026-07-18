@@ -17,17 +17,19 @@ describe("Hue color safety", () => {
       { hue: 190, saturation: 90, brightness: 55, transitionMs: 1600 },
       0.5,
     );
-    expect(medium.saturation).toBeLessThanOrEqual(38);
-    expect(medium.brightness).toBeLessThanOrEqual(28);
-    expect(medium.transitionMs).toBeGreaterThanOrEqual(3500);
+    expect(medium.saturation).toBeGreaterThanOrEqual(42);
+    expect(medium.saturation).toBeLessThanOrEqual(65);
+    expect(medium.brightness).toBeGreaterThanOrEqual(20);
+    expect(medium.brightness).toBeLessThanOrEqual(38);
+    expect(medium.transitionMs).toBeGreaterThanOrEqual(2400);
 
     const high = safeHueFrame(
       { hue: 190, saturation: 90, brightness: 55, transitionMs: 1600 },
       0.9,
     );
-    expect(high.saturation).toBeLessThanOrEqual(72);
-    expect(high.brightness).toBeLessThanOrEqual(45);
-    expect(high.transitionMs).toBeGreaterThanOrEqual(1800);
+    expect(high.saturation).toBeLessThanOrEqual(90);
+    expect(high.brightness).toBeLessThanOrEqual(55);
+    expect(high.transitionMs).toBeGreaterThanOrEqual(1500);
   });
 
   it("converts HSL colors to finite Hue xy coordinates", () => {

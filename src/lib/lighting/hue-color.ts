@@ -14,16 +14,16 @@ export function safeHueFrame(light: LightFrame, confidence: number): LightFrame 
   if (safeConfidence < 0.65) {
     return {
       hue: light.hue,
-      saturation: Math.min(38, light.saturation * 0.55),
-      brightness: Math.min(28, light.brightness * 0.8),
-      transitionMs: Math.max(3500, light.transitionMs),
+      saturation: Math.min(65, Math.max(42, light.saturation * 0.8)),
+      brightness: Math.min(38, Math.max(20, light.brightness * 0.85)),
+      transitionMs: Math.max(2400, light.transitionMs),
     };
   }
   return {
     hue: light.hue,
-    saturation: Math.min(72, light.saturation),
-    brightness: Math.min(45, light.brightness),
-    transitionMs: Math.max(1800, light.transitionMs),
+    saturation: Math.min(90, light.saturation),
+    brightness: Math.min(55, light.brightness),
+    transitionMs: Math.max(1500, light.transitionMs),
   };
 }
 

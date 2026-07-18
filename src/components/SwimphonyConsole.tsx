@@ -12,6 +12,7 @@ import {
   SampleVideoTracker,
 } from "@/components/SampleVideoTracker";
 import { ToneEngine } from "@/lib/audio/tone-engine";
+import { audioReactiveLight } from "@/lib/lighting/audio-reactive-light";
 import { virtualLightStyle } from "@/lib/lighting/virtual-light";
 import { DEFAULT_PRESET } from "@/lib/performance/default-preset";
 import { mapFishToPerformance } from "@/lib/performance/mapper";
@@ -93,6 +94,10 @@ export function SwimphonyConsole() {
   const frame = useMemo(
     () => mapFishToPerformance(fish, preset),
     [fish, preset],
+  );
+  const performanceLight = useMemo(
+    () => audioReactiveLight(frame, preset, fish.timestamp),
+    [fish.timestamp, frame, preset],
   );
 
   const acceptFishState = useCallback((nextFish: FishState) => {
@@ -176,7 +181,7 @@ export function SwimphonyConsole() {
     void fetch("/api/hue", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ light: frame.light, confidence: fish.confidence }),
+      body: JSON.stringify({ light: performanceLight, confidence: fish.confidence }),
     })
       .then((response) => {
         if (!response.ok) {
@@ -194,7 +199,7 @@ export function SwimphonyConsole() {
           message: "Hue paused; Virtual Light is still running.",
         }));
       });
-  }, [fish.confidence, frame.light, hueStatus.enabled]);
+  }, [fish.confidence, hueStatus.enabled, performanceLight]);
 
   useEffect(() => {
     return () => engineRef.current?.stop();
@@ -303,7 +308,7 @@ export function SwimphonyConsole() {
   }
 
   return (
-    <main className="app-shell" style={virtualLightStyle(frame.light)}>
+    <main className="app-shell" style={virtualLightStyle(performanceLight)}>
       <div className="virtual-light-wash" aria-hidden="true" />
       <header className="app-header">
         <div>
@@ -431,14 +436,14 @@ export function SwimphonyConsole() {
               <div
                 className="light-swatch"
                 style={{
-                  backgroundColor: `hsl(${frame.light.hue} ${frame.light.saturation}% ${frame.light.brightness}%)`,
+                  backgroundColor: `hsl(${performanceLight.hue} ${performanceLight.saturation}% ${performanceLight.brightness}%)`,
                 }}
               />
               <div>
                 <span className="section-kicker">VIRTUAL LIGHT</span>
-                <strong>{Math.round(frame.light.hue)}° · {Math.round(frame.light.brightness)}%</strong>
+                <strong>{Math.round(performanceLight.hue)}° · {Math.round(performanceLight.brightness)}%</strong>
               </div>
-              <span className="light-state">{fish.detected ? "Following fish" : "Neutral fade"}</span>
+              <span className="light-state">{fish.detected ? "Following sound + fish" : "Neutral fade"}</span>
             </div>
             <div className="hue-connection" data-connected={hueStatus.connected}>
               <div>
