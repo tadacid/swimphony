@@ -171,7 +171,7 @@ export function SwimphonyConsole() {
   useEffect(() => {
     if (!hueStatus.enabled) return;
     const now = performance.now();
-    if (now - lastHueUpdateRef.current < 1000) return;
+    if (lastHueUpdateRef.current > 0 && now - lastHueUpdateRef.current < 1000) return;
     lastHueUpdateRef.current = now;
     void fetch("/api/hue", {
       method: "POST",

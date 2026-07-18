@@ -1,5 +1,6 @@
 import "server-only";
 
+import { readFileSync } from "node:fs";
 import { Agent, request } from "node:https";
 import { isIP } from "node:net";
 
@@ -34,6 +35,24 @@ type HueResponse = {
 
 const UPDATE_INTERVAL_MS = 1000;
 
+function readApplicationKey(): string | undefined {
+  const fromEnvironment = process.env.HUE_APPLICATION_KEY?.trim();
+  if (fromEnvironment) return fromEnvironment;
+
+  const configPath = process.env.HUE_CONFIG_PATH?.trim();
+  if (!configPath) return undefined;
+  try {
+    const parsed = JSON.parse(readFileSync(configPath, "utf8")) as {
+      applicationKey?: unknown;
+    };
+    return typeof parsed.applicationKey === "string"
+      ? parsed.applicationKey.trim() || undefined
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function isPrivateIpv4(hostname: string): boolean {
   if (isIP(hostname) !== 4) return false;
   const parts = hostname.split(".").map(Number);
@@ -46,7 +65,7 @@ function isPrivateIpv4(hostname: string): boolean {
 
 function readConfig(): HueConfig | null {
   const baseUrl = process.env.HUE_BRIDGE_BASE_URL?.trim();
-  const applicationKey = process.env.HUE_APPLICATION_KEY?.trim();
+  const applicationKey = readApplicationKey();
   const groupedLightId = process.env.HUE_GROUPED_LIGHT_ID?.trim();
   if (!baseUrl || !applicationKey || !groupedLightId) return null;
 
