@@ -1,5 +1,9 @@
 import type { ColorProfile } from "@/lib/tracking/canvas-tracker";
-import { clampRoi, type AquariumRoi } from "@/lib/tracking/tracking-math";
+import {
+  clampRoi,
+  DEFAULT_AQUARIUM_ROI,
+  type AquariumRoi,
+} from "@/lib/tracking/tracking-math";
 
 export const CAMERA_CALIBRATION_STORAGE_KEY = "swimphony.camera-calibration.v1";
 
@@ -40,6 +44,15 @@ function validRoi(value: unknown): value is AquariumRoi {
   );
 }
 
+export function isUsableAquariumRoi(roi: AquariumRoi): boolean {
+  return roi.width >= 0.4 && roi.height >= 0.35;
+}
+
+export function repairAquariumRoi(roi: AquariumRoi): AquariumRoi {
+  const clamped = clampRoi(roi);
+  return isUsableAquariumRoi(clamped) ? clamped : DEFAULT_AQUARIUM_ROI;
+}
+
 export function parseCameraCalibration(raw: string | null): CameraCalibration | null {
   if (!raw) return null;
   try {
@@ -55,7 +68,7 @@ export function parseCameraCalibration(raw: string | null): CameraCalibration | 
     return {
       version: 1,
       deviceId: value.deviceId,
-      roi: clampRoi(value.roi),
+      roi: repairAquariumRoi(value.roi),
       profile: value.profile,
     };
   } catch {
@@ -68,5 +81,5 @@ export function serializeCameraCalibration(
   roi: AquariumRoi,
   profile: ColorProfile,
 ): string {
-  return JSON.stringify({ version: 1, deviceId, roi: clampRoi(roi), profile });
+  return JSON.stringify({ version: 1, deviceId, roi: repairAquariumRoi(roi), profile });
 }

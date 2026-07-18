@@ -61,6 +61,13 @@ export function roiFromPoints(start: Point, end: Point): AquariumRoi {
   });
 }
 
+export function aquariumRoiFromGesture(start: Point, end: Point): AquariumRoi {
+  const width = Math.abs(end.x - start.x);
+  const height = Math.abs(end.y - start.y);
+  if (width < 0.18 || height < 0.18) return DEFAULT_AQUARIUM_ROI;
+  return roiFromPoints(start, end);
+}
+
 export function normalizePointToRoi(
   point: Point,
   roi: AquariumRoi,

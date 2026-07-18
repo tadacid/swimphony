@@ -52,4 +52,17 @@ describe("camera calibration persistence", () => {
       ),
     ).toBeNull();
   });
+
+  it("repairs an accidentally tiny saved aquarium selection", () => {
+    expect(
+      parseCameraCalibration(
+        JSON.stringify({
+          version: 1,
+          deviceId: "switch-camera",
+          roi: { x: 0.68, y: 0.55, width: 0.08, height: 0.08 },
+          profile,
+        }),
+      )?.roi,
+    ).toEqual({ x: 0.035, y: 0.09, width: 0.93, height: 0.82 });
+  });
 });

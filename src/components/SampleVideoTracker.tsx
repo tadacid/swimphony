@@ -19,8 +19,8 @@ import {
 } from "@/lib/tracking/canvas-tracker";
 import {
   DEFAULT_AQUARIUM_ROI,
+  aquariumRoiFromGesture,
   pointFromRoi,
-  roiFromPoints,
   TRACKING_TUNING,
   type AquariumRoi,
   type Point,
@@ -325,7 +325,6 @@ function TrackedMedia({
     if (interaction === "roi") {
       dragStartRef.current = point;
       event.currentTarget.setPointerCapture(event.pointerId);
-      setRoi(roiFromPoints(point, point));
       return;
     }
 
@@ -355,12 +354,17 @@ function TrackedMedia({
 
   function handlePointerMove(event: ReactPointerEvent<HTMLDivElement>) {
     if (interaction !== "roi" || !dragStartRef.current) return;
-    setRoi(roiFromPoints(dragStartRef.current, pointFromEvent(event)));
+    setRoi(
+      aquariumRoiFromGesture(dragStartRef.current, pointFromEvent(event)),
+    );
   }
 
   function handlePointerUp(event: ReactPointerEvent<HTMLDivElement>) {
     if (interaction !== "roi" || !dragStartRef.current) return;
-    const nextRoi = roiFromPoints(dragStartRef.current, pointFromEvent(event));
+    const nextRoi = aquariumRoiFromGesture(
+      dragStartRef.current,
+      pointFromEvent(event),
+    );
     dragStartRef.current = null;
     setRoi(nextRoi);
     setProfile(null);

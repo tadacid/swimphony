@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  aquariumRoiFromGesture,
   confidenceFromScores,
   ema,
   holdLostFish,
@@ -31,6 +32,11 @@ function fish(overrides: Partial<FishState> = {}): FishState {
 }
 
 describe("tracking math", () => {
+  it("uses the full aquarium for an accidental short click or drag", () => {
+    expect(
+      aquariumRoiFromGesture({ x: 0.7, y: 0.6 }, { x: 0.71, y: 0.61 }),
+    ).toEqual({ x: 0.035, y: 0.09, width: 0.93, height: 0.82 });
+  });
   it("normalizes coordinates inside the aquarium ROI", () => {
     expect(normalizePointToRoi({ x: 0.5, y: 0.45 }, ROI)).toEqual({
       x: 0.5,
