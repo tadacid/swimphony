@@ -32,6 +32,20 @@ describe("Hue color safety", () => {
     expect(high.transitionMs).toBeGreaterThanOrEqual(1500);
   });
 
+  it("preserves fast color-only transitions when tracking is usable", () => {
+    const medium = safeHueFrame(
+      { hue: 286, saturation: 88, brightness: 82, transitionMs: 80 },
+      0.58,
+    );
+    const high = safeHueFrame(
+      { hue: 72, saturation: 88, brightness: 82, transitionMs: 80 },
+      0.82,
+    );
+
+    expect(medium.transitionMs).toBe(80);
+    expect(high.transitionMs).toBe(80);
+  });
+
   it("converts HSL colors to finite Hue xy coordinates", () => {
     for (const hue of [0, 60, 120, 180, 240, 300]) {
       const xy = hslToHueXy(hue, 70, 35);

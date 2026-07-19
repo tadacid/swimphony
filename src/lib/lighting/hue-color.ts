@@ -3,6 +3,7 @@ import { clamp } from "@/lib/utils/math";
 
 export function safeHueFrame(light: LightFrame, confidence: number): LightFrame {
   const safeConfidence = clamp(confidence, 0, 1);
+  const colorOnlySnap = light.transitionMs < 1200;
   if (safeConfidence < 0.35) {
     return {
       hue: 40,
@@ -16,14 +17,14 @@ export function safeHueFrame(light: LightFrame, confidence: number): LightFrame 
       hue: light.hue,
       saturation: Math.min(65, Math.max(42, light.saturation * 0.8)),
       brightness: Math.min(75, Math.max(50, light.brightness * 0.85)),
-      transitionMs: Math.max(2400, light.transitionMs),
+      transitionMs: colorOnlySnap ? light.transitionMs : Math.max(2400, light.transitionMs),
     };
   }
   return {
     hue: light.hue,
     saturation: Math.min(90, light.saturation),
     brightness: Math.min(100, light.brightness),
-    transitionMs: Math.max(1500, light.transitionMs),
+    transitionMs: colorOnlySnap ? light.transitionMs : Math.max(1500, light.transitionMs),
   };
 }
 

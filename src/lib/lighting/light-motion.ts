@@ -13,11 +13,7 @@ export const LIGHT_MOTION_OPTIONS: readonly {
 ];
 
 const STEP_PALETTE = [8, 48, 92, 156, 205, 268, 322] as const;
-const BEAT_OFFSETS = [0, 175, 62, 238] as const;
-
-function wrapHue(hue: number): number {
-  return ((hue % 360) + 360) % 360;
-}
+const BEAT_PALETTE = [8, 188, 72, 286] as const;
 
 export function applyLightMotion(
   light: LightFrame,
@@ -28,25 +24,26 @@ export function applyLightMotion(
   if (mode === "flow") return light;
 
   const beatMs = 60_000 / Math.max(40, Math.min(180, bpm));
-  const intervalMs = Math.max(900, beatMs * 2);
+  const intervalMs = mode === "beat-palette"
+    ? beatMs
+    : Math.max(550, beatMs * 2);
   const step = Math.floor(Math.max(0, elapsedMs) / intervalMs);
 
   if (mode === "color-steps") {
-    const fishColorIndex = Math.round(wrapHue(light.hue) / 52);
-    const paletteIndex = (fishColorIndex + step) % STEP_PALETTE.length;
     return {
       ...light,
-      hue: STEP_PALETTE[paletteIndex] ?? STEP_PALETTE[0],
+      hue: STEP_PALETTE[step % STEP_PALETTE.length] ?? STEP_PALETTE[0],
       saturation: Math.max(72, light.saturation),
-      transitionMs: 1200,
+      brightness: 82,
+      transitionMs: 220,
     };
   }
 
-  const baseHue = Math.round(wrapHue(light.hue) / 30) * 30;
   return {
     ...light,
-    hue: wrapHue(baseHue + (BEAT_OFFSETS[step % BEAT_OFFSETS.length] ?? 0)),
+    hue: BEAT_PALETTE[step % BEAT_PALETTE.length] ?? BEAT_PALETTE[0],
     saturation: Math.max(80, light.saturation),
-    transitionMs: 1200,
+    brightness: 82,
+    transitionMs: 80,
   };
 }

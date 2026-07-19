@@ -22,16 +22,18 @@ describe("light motion presets", () => {
 
     expect(held.hue).toBe(first.hue);
     expect(next.hue).not.toBe(first.hue);
-    expect(next.brightness).toBe(LIGHT.brightness);
-    expect(next.transitionMs).toBeGreaterThanOrEqual(1200);
+    expect(next.brightness).toBe(82);
+    expect(next.transitionMs).toBe(220);
   });
 
   it("uses separated beat colors without brightness flashing", () => {
     const first = applyLightMotion(LIGHT, "beat-palette", 0, 160);
-    const next = applyLightMotion(LIGHT, "beat-palette", 950, 160);
+    const next = applyLightMotion(LIGHT, "beat-palette", 400, 160);
 
     expect(next.hue).not.toBe(first.hue);
     expect(next.brightness).toBe(first.brightness);
+    expect(next.brightness).toBe(82);
     expect(next.saturation).toBeGreaterThanOrEqual(80);
+    expect(next.transitionMs).toBe(80);
   });
 });

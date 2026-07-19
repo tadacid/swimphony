@@ -33,7 +33,8 @@ type HueResponse = {
   data?: unknown[];
 };
 
-const UPDATE_INTERVAL_MS = 1000;
+const FLOW_UPDATE_INTERVAL_MS = 1000;
+const SNAP_UPDATE_INTERVAL_MS = 250;
 
 function readApplicationKey(): string | undefined {
   const fromEnvironment = process.env.HUE_APPLICATION_KEY?.trim();
@@ -189,7 +190,10 @@ export class LocalHueAdapter implements LightingAdapter {
     if (!this.config || !this.enabled) return;
     const config = this.config;
     const now = Date.now();
-    if (now - this.lastUpdateAt < UPDATE_INTERVAL_MS) return;
+    const updateIntervalMs = light.transitionMs < 1200
+      ? SNAP_UPDATE_INTERVAL_MS
+      : FLOW_UPDATE_INTERVAL_MS;
+    if (now - this.lastUpdateAt < updateIntervalMs) return;
     this.lastUpdateAt = now;
 
     const safe = safeHueFrame(light, confidence);

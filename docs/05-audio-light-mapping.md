@@ -32,6 +32,7 @@ Do not convert raw coordinates directly into arbitrary frequencies. Quantize mus
 - Minimum transition time: 1.2 seconds
 - Default transition: 1.8–3 seconds
 - Default brightness ceiling: 55–60%
+- Beat Palette is a deliberate color-only exception: hue may step once per beat with brightness held constant. It must never modulate brightness rapidly or point directly at the aquarium.
 - Hue should illuminate a wall, ceiling, or room indirectly
 - If confidence falls, reduce saturation and freeze large hue changes
 

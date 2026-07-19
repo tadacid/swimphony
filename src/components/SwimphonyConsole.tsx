@@ -257,7 +257,15 @@ export function SwimphonyConsole() {
   useEffect(() => {
     if (!hueStatus.enabled) return;
     const now = performance.now();
-    if (lastHueUpdateRef.current > 0 && now - lastHueUpdateRef.current < 1000) return;
+    const hueUpdateIntervalMs = lightMotion === "beat-palette"
+      ? 250
+      : lightMotion === "color-steps"
+        ? 500
+        : 1000;
+    if (
+      lastHueUpdateRef.current > 0 &&
+      now - lastHueUpdateRef.current < hueUpdateIntervalMs
+    ) return;
     lastHueUpdateRef.current = now;
     void fetch("/api/hue", {
       method: "POST",
@@ -280,7 +288,7 @@ export function SwimphonyConsole() {
           message: "Hue paused; Virtual Light is still running.",
         }));
       });
-  }, [fish.confidence, hueStatus.enabled, performanceLight]);
+  }, [fish.confidence, hueStatus.enabled, lightMotion, performanceLight]);
 
   useEffect(() => {
     return () => engineRef.current?.stop();
