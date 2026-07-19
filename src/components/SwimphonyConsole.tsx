@@ -341,23 +341,15 @@ export function SwimphonyConsole() {
     engineRef.current = null;
     setAudioActive(false);
     setMessage("Swimphonyを終了しています…");
-    const shouldDisableHue = hueStatus.available && hueStatus.enabled;
     setHueStatus((status) => ({
       ...status,
       enabled: false,
-      message: "Hue control stopped.",
+      message: "Returning Hue to warm white…",
     }));
 
     try {
-      if (shouldDisableHue) {
-        await fetch("/api/hue", {
-          method: "PATCH",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ enabled: false }),
-        });
-      }
-
-      await fetch("/api/shutdown", { method: "POST" });
+      const response = await fetch("/api/shutdown", { method: "POST" });
+      if (!response.ok) throw new Error("Shutdown failed");
       window.close();
     } catch {
       setQuitting(false);

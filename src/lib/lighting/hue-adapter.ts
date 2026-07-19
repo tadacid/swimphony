@@ -207,11 +207,22 @@ export class LocalHueAdapter implements LightingAdapter {
   }
 
   async reset(): Promise<void> {
-    if (!this.config || !this.enabled) return;
-    await this.update(
-      { hue: 40, saturation: 12, brightness: 12, transitionMs: 5000 },
-      0,
+    if (!this.config) return;
+    this.enabled = false;
+    const xy = hslToHueXy(40, 12, 50);
+    await hueRequest(
+      this.config,
+      `/clip/v2/resource/grouped_light/${encodeURIComponent(this.config.groupedLightId)}`,
+      "PUT",
+      {
+        on: { on: true },
+        dimming: { brightness: 55 },
+        color: { xy },
+        dynamics: { duration: 2500 },
+      },
     );
+    this.lastUpdateAt = Date.now();
+    this.connected = true;
   }
 }
 
