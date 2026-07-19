@@ -12,6 +12,7 @@ const HueUpdateSchema = z.object({
     transitionMs: z.number().int().min(0).max(6000),
   }).strict(),
   confidence: z.number().min(0).max(1),
+  forceOutput: z.boolean().optional().default(false),
 }).strict();
 
 const HueToggleSchema = z.object({ enabled: z.boolean() }).strict();
@@ -45,7 +46,7 @@ export async function DELETE(): Promise<Response> {
 export async function POST(request: Request): Promise<Response> {
   try {
     const body = HueUpdateSchema.parse(await request.json());
-    await hueAdapter.update(body.light, body.confidence);
+    await hueAdapter.update(body.light, body.confidence, body.forceOutput);
     return Response.json({ ok: true });
   } catch (error) {
     console.error("Hue update failed", error instanceof Error ? error.message : "Unknown error");

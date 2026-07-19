@@ -257,8 +257,10 @@ export function SwimphonyConsole() {
   useEffect(() => {
     if (!hueStatus.enabled) return;
     const now = performance.now();
-    const hueUpdateIntervalMs = lightMotion === "beat-palette" || lightMotion === "party-edge"
-      ? 250
+    const hueUpdateIntervalMs = lightMotion === "strobe"
+      ? 120
+      : lightMotion === "beat-palette" || lightMotion === "party-edge"
+        ? 250
       : lightMotion === "color-steps"
         ? 500
         : 1000;
@@ -270,7 +272,11 @@ export function SwimphonyConsole() {
     void fetch("/api/hue", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ light: performanceLight, confidence: fish.confidence }),
+      body: JSON.stringify({
+        light: performanceLight,
+        confidence: fish.confidence,
+        forceOutput: lightMotion === "strobe",
+      }),
     })
       .then((response) => {
         if (!response.ok) {
@@ -718,6 +724,7 @@ export function SwimphonyConsole() {
                     setMessage(`${option.label} light motion is active. ${option.cue}.`);
                   }}
                   title={option.cue}
+                  aria-label={`${option.label}: ${option.cue}, 明るさ ${option.brightness}`}
                 >
                   <span>{option.label}</span>
                   <small>{option.brightness}</small>

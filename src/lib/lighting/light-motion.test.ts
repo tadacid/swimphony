@@ -45,4 +45,12 @@ describe("light motion presets", () => {
     expect(new Set(frames.map((frame) => frame.brightness))).toEqual(new Set([65, 100]));
     expect(frames.every((frame) => frame.transitionMs === 0)).toBe(true);
   });
+
+  it("alternates strobe brightness every half beat", () => {
+    const frames = [0, 250, 500, 750].map((elapsedMs) =>
+      applyLightMotion(LIGHT, "strobe", elapsedMs, 120));
+
+    expect(frames.map((frame) => frame.brightness)).toEqual([100, 0, 100, 0]);
+    expect(frames.every((frame) => frame.transitionMs === 0)).toBe(true);
+  });
 });

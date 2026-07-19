@@ -1,6 +1,7 @@
 import "server-only";
 
 import { readFileSync } from "node:fs";
+import { Agent as HttpAgent, request as httpRequest } from "node:http";
 import { Agent, request } from "node:https";
 import { isIP } from "node:net";
 
@@ -17,7 +18,7 @@ export type LightingAdapterStatus = {
 export interface LightingAdapter {
   getStatus(probe?: boolean): Promise<LightingAdapterStatus>;
   setEnabled(enabled: boolean): Promise<LightingAdapterStatus>;
-  update(light: LightFrame, confidence: number): Promise<void>;
+  update(light: LightFrame, confidence: number, forceOutput?: boolean): Promise<void>;
   reset(): Promise<void>;
 }
 
@@ -25,6 +26,7 @@ type HueConfig = {
   bridge: URL;
   applicationKey: string;
   groupedLightId: string;
+  legacyGroupId?: string;
   enabledByDefault: boolean;
 };
 
@@ -36,16 +38,18 @@ type HueResponse = {
 type PendingHueUpdate = {
   light: LightFrame;
   confidence: number;
+  forceOutput: boolean;
 };
 
 const FLOW_UPDATE_INTERVAL_MS = 1000;
-const SNAP_UPDATE_INTERVAL_MS = 250;
-const HUE_ADAPTER_VERSION = 4;
+const SNAP_UPDATE_INTERVAL_MS = 100;
+const HUE_ADAPTER_VERSION = 5;
 const HUE_AGENT = new Agent({
   rejectUnauthorized: false,
   keepAlive: true,
   maxSockets: 2,
 });
+const HUE_V1_AGENT = new HttpAgent({ keepAlive: true, maxSockets: 2 });
 
 function readApplicationKey(): string | undefined {
   const fromEnvironment = process.env.HUE_APPLICATION_KEY?.trim();
@@ -88,11 +92,64 @@ function readConfig(): HueConfig | null {
       bridge,
       applicationKey,
       groupedLightId,
+      legacyGroupId: process.env.HUE_V1_GROUP_ID?.trim() || undefined,
       enabledByDefault: process.env.HUE_ENABLED === "true",
     };
   } catch {
     return null;
   }
+}
+
+async function hueV1GroupRequest(
+  config: HueConfig,
+  body: Record<string, unknown>,
+): Promise<void> {
+  if (!config.legacyGroupId) throw new Error("Hue v1 group is not configured.");
+  const url = new URL(
+    `/api/${encodeURIComponent(config.applicationKey)}/groups/${encodeURIComponent(config.legacyGroupId)}/action`,
+    `http://${config.bridge.hostname}`,
+  );
+  const payload = JSON.stringify(body);
+
+  await new Promise<void>((resolve, reject) => {
+    const req = httpRequest(
+      url,
+      {
+        method: "PUT",
+        agent: HUE_V1_AGENT,
+        headers: {
+          "content-type": "application/json",
+          "content-length": Buffer.byteLength(payload),
+        },
+        timeout: 1500,
+      },
+      (response) => {
+        let raw = "";
+        response.setEncoding("utf8");
+        response.on("data", (chunk: string) => {
+          raw = `${raw}${chunk}`.slice(-20_000);
+        });
+        response.on("end", () => {
+          if (!response.statusCode || response.statusCode < 200 || response.statusCode >= 300) {
+            reject(new Error("Hue v1 group request failed."));
+            return;
+          }
+          try {
+            const parsed = JSON.parse(raw) as Array<{ error?: { description?: string } }>;
+            const bridgeError = parsed.find((item) => item.error)?.error?.description;
+            if (bridgeError) reject(new Error(`Hue Bridge rejected the update: ${bridgeError}`));
+            else resolve();
+          } catch {
+            reject(new Error("Hue Bridge returned an invalid v1 response."));
+          }
+        });
+      },
+    );
+    req.on("timeout", () => req.destroy(new Error("Hue Bridge timed out.")));
+    req.on("error", reject);
+    req.write(payload);
+    req.end();
+  });
 }
 
 async function hueRequest(
@@ -199,7 +256,7 @@ export class LocalHueAdapter implements LightingAdapter {
     return this.getStatus(true);
   }
 
-  async update(light: LightFrame, confidence: number): Promise<void> {
+  async update(light: LightFrame, confidence: number, forceOutput = false): Promise<void> {
     if (!this.config || !this.enabled) return;
     const config = this.config;
     const now = Date.now();
@@ -208,7 +265,7 @@ export class LocalHueAdapter implements LightingAdapter {
       : FLOW_UPDATE_INTERVAL_MS;
     if (now - this.lastUpdateAt < updateIntervalMs) return;
     if (this.updateInFlight) {
-      this.queuedUpdate = { light, confidence };
+      this.queuedUpdate = { light, confidence, forceOutput };
       return;
     }
     this.lastUpdateAt = now;
@@ -217,23 +274,38 @@ export class LocalHueAdapter implements LightingAdapter {
     const operation = this.pendingOperation
       .catch(() => undefined)
       .then(async () => {
-        let next: PendingHueUpdate | null = { light, confidence };
+        let next: PendingHueUpdate | null = { light, confidence, forceOutput };
         while (next && this.enabled) {
           const current: PendingHueUpdate = next;
           this.queuedUpdate = null;
-          const safe = safeHueFrame(current.light, current.confidence);
-          const xy = hslToHueXy(safe.hue, safe.saturation, 50);
-          await hueRequest(
-            config,
-            `/clip/v2/resource/grouped_light/${encodeURIComponent(config.groupedLightId)}`,
-            "PUT",
-            {
-              on: { on: true },
-              dimming: { brightness: safe.brightness },
-              color: { xy },
-              dynamics: { duration: safe.transitionMs },
-            },
+          const safe = safeHueFrame(
+            current.light,
+            current.forceOutput ? 1 : current.confidence,
           );
+          const xy = hslToHueXy(safe.hue, safe.saturation, 50);
+          if (config.legacyGroupId && safe.transitionMs === 0) {
+            await hueV1GroupRequest(config, safe.brightness <= 0
+              ? { on: false, transitiontime: 0 }
+              : {
+                  on: true,
+                  bri: Math.round((safe.brightness / 100) * 254),
+                  xy: [xy.x, xy.y],
+                  transitiontime: 0,
+                });
+          } else {
+            await hueRequest(
+              config,
+              `/clip/v2/resource/grouped_light/${encodeURIComponent(config.groupedLightId)}`,
+              "PUT",
+              {
+                on: { on: safe.brightness > 0 },
+                ...(safe.brightness > 0
+                  ? { dimming: { brightness: safe.brightness }, color: { xy } }
+                  : {}),
+                dynamics: { duration: safe.transitionMs },
+              },
+            );
+          }
           this.connected = true;
           this.lastUpdateAt = Date.now();
           next = this.queuedUpdate;
