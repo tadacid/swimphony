@@ -34,16 +34,16 @@ describe("Hue color safety", () => {
 
   it("preserves fast color-only transitions when tracking is usable", () => {
     const medium = safeHueFrame(
-      { hue: 286, saturation: 88, brightness: 82, transitionMs: 80 },
+      { hue: 286, saturation: 90, brightness: 100, transitionMs: 0 },
       0.58,
     );
     const high = safeHueFrame(
-      { hue: 72, saturation: 88, brightness: 82, transitionMs: 80 },
+      { hue: 72, saturation: 90, brightness: 100, transitionMs: 0 },
       0.82,
     );
 
-    expect(medium.transitionMs).toBe(80);
-    expect(high.transitionMs).toBe(80);
+    expect(medium).toMatchObject({ saturation: 90, brightness: 100, transitionMs: 0 });
+    expect(high).toMatchObject({ saturation: 90, brightness: 100, transitionMs: 0 });
   });
 
   it("converts HSL colors to finite Hue xy coordinates", () => {

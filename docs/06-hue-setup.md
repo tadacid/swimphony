@@ -28,7 +28,7 @@ Do not commit them.
 - Run Hue calls from a server route or local companion process, never directly from browser JavaScript containing the key.
 - Bridges commonly use a local certificate that needs proper local trust handling. Do not globally disable TLS verification in production code.
 - Rate-limit grouped-light updates to about one per second and use transition durations.
-- Beat Palette may update color as quickly as 250 ms with an 80 ms color transition, but brightness must remain fixed and the lights must remain indirect. This is not a strobe mode.
+- Beat Palette may update color as quickly as 250 ms with a zero-duration color transition, but brightness must remain fixed and the lights must remain indirect. This is not a brightness strobe mode.
 - The Virtual Light path must remain active when Hue is unavailable.
 
 ## Safety controller

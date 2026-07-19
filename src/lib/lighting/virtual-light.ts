@@ -14,8 +14,8 @@ export function virtualLightStyle(
   const visualTransitionMs = motion === "flow"
     ? light.transitionMs
     : motion === "color-steps"
-      ? 140
-      : 60;
+      ? 80
+      : 0;
 
   return {
     "--light-primary": primary,

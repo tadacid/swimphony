@@ -22,8 +22,8 @@ describe("light motion presets", () => {
 
     expect(held.hue).toBe(first.hue);
     expect(next.hue).not.toBe(first.hue);
-    expect(next.brightness).toBe(82);
-    expect(next.transitionMs).toBe(220);
+    expect(next.brightness).toBe(100);
+    expect(next.transitionMs).toBe(120);
   });
 
   it("uses separated beat colors without brightness flashing", () => {
@@ -32,8 +32,8 @@ describe("light motion presets", () => {
 
     expect(next.hue).not.toBe(first.hue);
     expect(next.brightness).toBe(first.brightness);
-    expect(next.brightness).toBe(82);
+    expect(next.brightness).toBe(100);
     expect(next.saturation).toBeGreaterThanOrEqual(80);
-    expect(next.transitionMs).toBe(80);
+    expect(next.transitionMs).toBe(0);
   });
 });

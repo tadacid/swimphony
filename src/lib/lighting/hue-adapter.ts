@@ -35,7 +35,7 @@ type HueResponse = {
 
 const FLOW_UPDATE_INTERVAL_MS = 1000;
 const SNAP_UPDATE_INTERVAL_MS = 250;
-const HUE_ADAPTER_VERSION = 2;
+const HUE_ADAPTER_VERSION = 3;
 
 function readApplicationKey(): string | undefined {
   const fromEnvironment = process.env.HUE_APPLICATION_KEY?.trim();

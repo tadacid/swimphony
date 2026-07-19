@@ -33,17 +33,17 @@ export function applyLightMotion(
     return {
       ...light,
       hue: STEP_PALETTE[step % STEP_PALETTE.length] ?? STEP_PALETTE[0],
-      saturation: Math.max(72, light.saturation),
-      brightness: 82,
-      transitionMs: 220,
+      saturation: Math.max(86, light.saturation),
+      brightness: 100,
+      transitionMs: 120,
     };
   }
 
   return {
     ...light,
     hue: BEAT_PALETTE[step % BEAT_PALETTE.length] ?? BEAT_PALETTE[0],
-    saturation: Math.max(80, light.saturation),
-    brightness: 82,
-    transitionMs: 80,
+    saturation: Math.max(90, light.saturation),
+    brightness: 100,
+    transitionMs: 0,
   };
 }
