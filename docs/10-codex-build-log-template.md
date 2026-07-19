@@ -74,3 +74,12 @@ Keep this document updated during the primary Codex thread.
 - Codex contribution:
 - Human product/design decisions:
 - Final commit hash:
+
+### Genre groove accompaniment
+
+- Files changed: `src/lib/audio/tone-engine.ts`, `src/lib/performance/groove-pattern.ts`, `src/lib/performance/groove-pattern.test.ts`
+- Commands run: `npm run lint`, `npm test`, `npm run build`, `git diff --check`
+- Codex contribution: Added continuous genre-specific kick, bass, and hi-hat foundations while retaining the existing fish-only Original mode. In genre modes, the original fish performance is lifted into a lead register over the groove; fish position changes the bass pitch and fish energy changes groove intensity.
+- Human product/design decision: A song should continue when the fish pauses; the fish conducts and solos over the music instead of being responsible for every note.
+- Verification: 12 test files and 46 tests passed; lint and production build passed. A Tone.js filter automation error found during browser startup was removed. Final listening balance remains a human review step.
+- Commit hash: `edc35e4`
