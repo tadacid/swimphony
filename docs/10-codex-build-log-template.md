@@ -93,3 +93,4 @@ Keep this document updated during the primary Codex thread.
 - Verification: 13 test files and 49 tests passed; lint and production build passed.
 - Commit hash: `3b4df1c`
 - Follow-up: Beat Palette now changes hue once per BPM beat with an 80 ms color transition; Color Steps uses 220 ms transitions. Both hold brightness at 82% to avoid brightness flashing. Hue and browser update limits were adjusted only for these color-only modes. Verification increased to 50 passing tests. Commit: `c9212e5`.
+- Visibility fix: Live tracking confidence had still reduced the stepped modes to roughly 70% brightness and lower saturation. Color Steps and Beat Palette now hold brightness at 100% while tracking is usable; Beat Palette uses a zero-duration hue change and Color Steps uses 120 ms. A read-only bridge check confirmed full Hue brightness (`bri: 254`) and immediate coordinate changes. Commit: `7344f36`.
