@@ -33,9 +33,19 @@ type HueResponse = {
   data?: unknown[];
 };
 
+type PendingHueUpdate = {
+  light: LightFrame;
+  confidence: number;
+};
+
 const FLOW_UPDATE_INTERVAL_MS = 1000;
 const SNAP_UPDATE_INTERVAL_MS = 250;
-const HUE_ADAPTER_VERSION = 3;
+const HUE_ADAPTER_VERSION = 4;
+const HUE_AGENT = new Agent({
+  rejectUnauthorized: false,
+  keepAlive: true,
+  maxSockets: 2,
+});
 
 function readApplicationKey(): string | undefined {
   const fromEnvironment = process.env.HUE_APPLICATION_KEY?.trim();
@@ -99,7 +109,7 @@ async function hueRequest(
       url,
       {
         method,
-        agent: new Agent({ rejectUnauthorized: false }),
+        agent: HUE_AGENT,
         headers: {
           "hue-application-key": config.applicationKey,
           ...(payload
@@ -145,6 +155,8 @@ export class LocalHueAdapter implements LightingAdapter {
   private lastUpdateAt = 0;
   private connected = false;
   private pendingOperation: Promise<void> = Promise.resolve();
+  private queuedUpdate: PendingHueUpdate | null = null;
+  private updateInFlight = false;
 
   constructor(private readonly config: HueConfig | null = readConfig()) {
     this.enabled = config?.enabledByDefault ?? false;
@@ -195,35 +207,51 @@ export class LocalHueAdapter implements LightingAdapter {
       ? SNAP_UPDATE_INTERVAL_MS
       : FLOW_UPDATE_INTERVAL_MS;
     if (now - this.lastUpdateAt < updateIntervalMs) return;
+    if (this.updateInFlight) {
+      this.queuedUpdate = { light, confidence };
+      return;
+    }
     this.lastUpdateAt = now;
+    this.updateInFlight = true;
 
-    const safe = safeHueFrame(light, confidence);
-    const xy = hslToHueXy(safe.hue, safe.saturation, 50);
     const operation = this.pendingOperation
       .catch(() => undefined)
       .then(async () => {
-        if (!this.enabled) return;
-        await hueRequest(
-          config,
-          `/clip/v2/resource/grouped_light/${encodeURIComponent(config.groupedLightId)}`,
-          "PUT",
-          {
-            on: { on: true },
-            dimming: { brightness: safe.brightness },
-            color: { xy },
-            dynamics: { duration: safe.transitionMs },
-          },
-        );
-        this.connected = true;
+        let next: PendingHueUpdate | null = { light, confidence };
+        while (next && this.enabled) {
+          const current: PendingHueUpdate = next;
+          this.queuedUpdate = null;
+          const safe = safeHueFrame(current.light, current.confidence);
+          const xy = hslToHueXy(safe.hue, safe.saturation, 50);
+          await hueRequest(
+            config,
+            `/clip/v2/resource/grouped_light/${encodeURIComponent(config.groupedLightId)}`,
+            "PUT",
+            {
+              on: { on: true },
+              dimming: { brightness: safe.brightness },
+              color: { xy },
+              dynamics: { duration: safe.transitionMs },
+            },
+          );
+          this.connected = true;
+          this.lastUpdateAt = Date.now();
+          next = this.queuedUpdate;
+        }
       });
     this.pendingOperation = operation;
-    await operation;
+    try {
+      await operation;
+    } finally {
+      this.updateInFlight = false;
+    }
   }
 
   async reset(): Promise<void> {
     if (!this.config) return;
     const config = this.config;
     this.enabled = false;
+    this.queuedUpdate = null;
     const defaultWarmWhite = { x: 0.3684, y: 0.3638 };
     const operation = this.pendingOperation
       .catch(() => undefined)

@@ -29,6 +29,7 @@ Do not commit them.
 - Bridges commonly use a local certificate that needs proper local trust handling. Do not globally disable TLS verification in production code.
 - Rate-limit grouped-light updates to about one per second and use transition durations.
 - Beat Palette may update color as quickly as 250 ms with a zero-duration color transition, but brightness must remain fixed and the lights must remain indirect. This is not a brightness strobe mode.
+- Party Edge uses the same beat limit and only alternates between 65% and 100% brightness. It must never use 0% brightness or sub-beat flashing.
 - The Virtual Light path must remain active when Hue is unavailable.
 
 ## Safety controller

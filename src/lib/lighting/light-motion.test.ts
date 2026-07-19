@@ -36,4 +36,13 @@ describe("light motion presets", () => {
     expect(next.saturation).toBeGreaterThanOrEqual(80);
     expect(next.transitionMs).toBe(0);
   });
+
+  it("creates deterministic party steps at safe non-zero brightness", () => {
+    const frames = Array.from({ length: 12 }, (_, step) =>
+      applyLightMotion(LIGHT, "party-edge", step * 500, 120));
+
+    expect(new Set(frames.map((frame) => frame.hue)).size).toBeGreaterThan(3);
+    expect(new Set(frames.map((frame) => frame.brightness))).toEqual(new Set([65, 100]));
+    expect(frames.every((frame) => frame.transitionMs === 0)).toBe(true);
+  });
 });

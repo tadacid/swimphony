@@ -33,6 +33,7 @@ Do not convert raw coordinates directly into arbitrary frequencies. Quantize mus
 - Default transition: 1.8–3 seconds
 - Default brightness ceiling: 55–60%
 - Beat Palette is a deliberate color-only exception: hue may step once per beat with brightness held constant. It must never modulate brightness rapidly or point directly at the aquarium.
+- Party Edge may alternate between 65% and 100% brightness once per beat for stronger rhythm, but never switches to 0%, flashes repeatedly within a beat, or shines directly into the aquarium.
 - Hue should illuminate a wall, ceiling, or room indirectly
 - If confidence falls, reduce saturation and freeze large hue changes
 

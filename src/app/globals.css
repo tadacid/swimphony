@@ -807,11 +807,16 @@ button:disabled {
 
 .light-motion-switcher {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 7px;
 }
 
 .light-motion-switcher button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
   min-height: 34px;
   padding: 6px;
   border: 1px solid var(--line);
@@ -821,6 +826,13 @@ button:disabled {
   font-size: 0.59rem;
   font-weight: 720;
   letter-spacing: 0.02em;
+}
+
+.light-motion-switcher button small {
+  color: inherit;
+  font-size: 0.5rem;
+  font-weight: 560;
+  opacity: 0.62;
 }
 
 .light-motion-switcher button[data-active="true"] {

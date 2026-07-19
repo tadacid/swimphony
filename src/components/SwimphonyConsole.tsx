@@ -257,7 +257,7 @@ export function SwimphonyConsole() {
   useEffect(() => {
     if (!hueStatus.enabled) return;
     const now = performance.now();
-    const hueUpdateIntervalMs = lightMotion === "beat-palette"
+    const hueUpdateIntervalMs = lightMotion === "beat-palette" || lightMotion === "party-edge"
       ? 250
       : lightMotion === "color-steps"
         ? 500
@@ -701,7 +701,11 @@ export function SwimphonyConsole() {
 
             <div className="light-motion-heading">
               <span className="section-kicker">LIGHT MOTION</span>
-              <strong>{LIGHT_MOTION_OPTIONS.find((option) => option.id === lightMotion)?.cue}</strong>
+              <strong>
+                {LIGHT_MOTION_OPTIONS.find((option) => option.id === lightMotion)?.cue}
+                {" · 明るさ "}
+                {LIGHT_MOTION_OPTIONS.find((option) => option.id === lightMotion)?.brightness}
+              </strong>
             </div>
             <div className="light-motion-switcher" aria-label="Light motion preset">
               {LIGHT_MOTION_OPTIONS.map((option) => (
@@ -715,7 +719,8 @@ export function SwimphonyConsole() {
                   }}
                   title={option.cue}
                 >
-                  {option.label}
+                  <span>{option.label}</span>
+                  <small>{option.brightness}</small>
                 </button>
               ))}
             </div>
