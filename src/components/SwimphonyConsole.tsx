@@ -16,6 +16,11 @@ import {
   type PerformanceLayer,
 } from "@/lib/audio/tone-engine";
 import { audioReactiveLight } from "@/lib/lighting/audio-reactive-light";
+import {
+  applyLightMotion,
+  LIGHT_MOTION_OPTIONS,
+  type LightMotionMode,
+} from "@/lib/lighting/light-motion";
 import { virtualLightStyle } from "@/lib/lighting/virtual-light";
 import { DEFAULT_PRESET } from "@/lib/performance/default-preset";
 import { mapFishToPerformance } from "@/lib/performance/mapper";
@@ -120,6 +125,7 @@ export function SwimphonyConsole() {
   const [quitting, setQuitting] = useState(false);
   const [audienceMode, setAudienceMode] = useState(false);
   const [visualPreset, setVisualPreset] = useState<VisualPresetId>(DEFAULT_VISUAL_PRESET);
+  const [lightMotion, setLightMotion] = useState<LightMotionMode>("flow");
   const engineRef = useRef<ToneEngine | null>(null);
   const lastHueUpdateRef = useRef(0);
   const projectionChannelRef = useRef<BroadcastChannel | null>(null);
@@ -128,9 +134,13 @@ export function SwimphonyConsole() {
     () => mapFishToPerformance(fish, preset),
     [fish, preset],
   );
-  const performanceLight = useMemo(
+  const audioLight = useMemo(
     () => audioReactiveLight(frame, preset, fish.timestamp),
     [fish.timestamp, frame, preset],
+  );
+  const performanceLight = useMemo(
+    () => applyLightMotion(audioLight, lightMotion, fish.timestamp, preset.bpm),
+    [audioLight, fish.timestamp, lightMotion, preset.bpm],
   );
 
   const acceptFishState = useCallback((nextFish: FishState) => {
@@ -496,7 +506,7 @@ export function SwimphonyConsole() {
     <main
       className="app-shell"
       data-audience={audienceMode}
-      style={virtualLightStyle(performanceLight)}
+      style={virtualLightStyle(performanceLight, lightMotion)}
     >
       <div className="virtual-light-wash" aria-hidden="true" />
       {audienceMode ? (
@@ -677,6 +687,27 @@ export function SwimphonyConsole() {
                 >
                   <span>{option.label}</span>
                   <small>{option.cue}</small>
+                </button>
+              ))}
+            </div>
+
+            <div className="light-motion-heading">
+              <span className="section-kicker">LIGHT MOTION</span>
+              <strong>{LIGHT_MOTION_OPTIONS.find((option) => option.id === lightMotion)?.cue}</strong>
+            </div>
+            <div className="light-motion-switcher" aria-label="Light motion preset">
+              {LIGHT_MOTION_OPTIONS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  data-active={lightMotion === option.id}
+                  onClick={() => {
+                    setLightMotion(option.id);
+                    setMessage(`${option.label} light motion is active. ${option.cue}.`);
+                  }}
+                  title={option.cue}
+                >
+                  {option.label}
                 </button>
               ))}
             </div>
