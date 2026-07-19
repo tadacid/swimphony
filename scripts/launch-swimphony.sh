@@ -41,25 +41,7 @@ if ! is_swimphony_ready; then
 fi
 
 if [[ -d "/Applications/Google Chrome.app" ]]; then
-  /usr/bin/osascript <<'APPLESCRIPT'
-tell application "Google Chrome"
-  activate
-  repeat with browserWindow in windows
-    set tabNumber to 0
-    repeat with browserTab in tabs of browserWindow
-      set tabNumber to tabNumber + 1
-      if URL of browserTab starts with "http://localhost:3000/" then
-        set active tab index of browserWindow to tabNumber
-        set minimized of browserWindow to false
-        set index of browserWindow to 1
-        activate
-        return
-      end if
-    end repeat
-  end repeat
-  open location "http://localhost:3000/"
-end tell
-APPLESCRIPT
+  /usr/bin/open -a "Google Chrome" "$APP_URL"
 else
   /usr/bin/open "$APP_URL"
 fi
