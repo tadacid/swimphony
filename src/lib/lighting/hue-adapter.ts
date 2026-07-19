@@ -43,6 +43,7 @@ type PendingHueUpdate = {
 
 const FLOW_UPDATE_INTERVAL_MS = 1000;
 const SNAP_UPDATE_INTERVAL_MS = 65;
+const IDLE_RESET_DELAY_MS = 3500;
 const HUE_ADAPTER_VERSION = 5;
 const HUE_AGENT = new Agent({
   rejectUnauthorized: false,
@@ -214,6 +215,7 @@ export class LocalHueAdapter implements LightingAdapter {
   private pendingOperation: Promise<void> = Promise.resolve();
   private queuedUpdate: PendingHueUpdate | null = null;
   private updateInFlight = false;
+  private idleResetTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(private readonly config: HueConfig | null = readConfig()) {
     this.enabled = config?.enabledByDefault ?? false;
@@ -254,6 +256,21 @@ export class LocalHueAdapter implements LightingAdapter {
     if (!this.config) return this.getStatus();
     this.enabled = enabled;
     return this.getStatus(true);
+  }
+
+  private scheduleIdleReset(): void {
+    if (this.idleResetTimer) clearTimeout(this.idleResetTimer);
+    this.idleResetTimer = setTimeout(() => {
+      this.idleResetTimer = null;
+      if (!this.enabled) return;
+      void this.reset().catch((error) => {
+        console.error(
+          "Hue idle reset failed",
+          error instanceof Error ? error.message : "Unknown error",
+        );
+      });
+    }, IDLE_RESET_DELAY_MS);
+    this.idleResetTimer.unref?.();
   }
 
   async update(light: LightFrame, confidence: number, forceOutput = false): Promise<void> {
@@ -307,6 +324,7 @@ export class LocalHueAdapter implements LightingAdapter {
             );
           }
           this.connected = true;
+          this.scheduleIdleReset();
           next = this.queuedUpdate;
         }
       });
@@ -321,6 +339,10 @@ export class LocalHueAdapter implements LightingAdapter {
   async reset(): Promise<void> {
     if (!this.config) return;
     const config = this.config;
+    if (this.idleResetTimer) {
+      clearTimeout(this.idleResetTimer);
+      this.idleResetTimer = null;
+    }
     this.enabled = false;
     this.queuedUpdate = null;
     const defaultWarmWhite = { x: 0.3684, y: 0.3638 };

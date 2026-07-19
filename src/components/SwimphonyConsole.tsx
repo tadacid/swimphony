@@ -129,6 +129,7 @@ export function SwimphonyConsole() {
   const [lightClockMs, setLightClockMs] = useState(() => performance.now());
   const engineRef = useRef<ToneEngine | null>(null);
   const lastHueUpdateRef = useRef(0);
+  const quitInitiatedRef = useRef(false);
   const projectionChannelRef = useRef<BroadcastChannel | null>(null);
 
   const frame = useMemo(
@@ -313,6 +314,15 @@ export function SwimphonyConsole() {
   }, []);
 
   useEffect(() => {
+    const resetHueWhenClosing = () => {
+      if (quitInitiatedRef.current) return;
+      void fetch("/api/hue", { method: "DELETE", keepalive: true });
+    };
+    window.addEventListener("pagehide", resetHueWhenClosing);
+    return () => window.removeEventListener("pagehide", resetHueWhenClosing);
+  }, []);
+
+  useEffect(() => {
     const handleFullscreenChange = () => {
       if (audienceMode && !document.fullscreenElement) {
         setAudienceMode(false);
@@ -477,6 +487,7 @@ export function SwimphonyConsole() {
 
   async function quitApplication() {
     if (quitting) return;
+    quitInitiatedRef.current = true;
     setQuitting(true);
     engineRef.current?.stop();
     engineRef.current = null;
@@ -493,6 +504,7 @@ export function SwimphonyConsole() {
       if (!response.ok) throw new Error("Shutdown failed");
       window.close();
     } catch {
+      quitInitiatedRef.current = false;
       setQuitting(false);
       setMessage("終了できませんでした。もう一度押してください。");
     }
