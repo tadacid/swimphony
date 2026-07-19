@@ -83,3 +83,12 @@ Keep this document updated during the primary Codex thread.
 - Human product/design decision: A song should continue when the fish pauses; the fish conducts and solos over the music instead of being responsible for every note.
 - Verification: 12 test files and 46 tests passed; lint and production build passed. A Tone.js filter automation error found during browser startup was removed. Final listening balance remains a human review step.
 - Commit hash: `edc35e4`
+
+### Selectable light motion
+
+- Files changed: `src/components/SwimphonyConsole.tsx`, `src/app/globals.css`, `src/lib/lighting/light-motion.ts`, `src/lib/lighting/light-motion.test.ts`, `src/lib/lighting/virtual-light.ts`
+- Commands run: `npm run lint`, `npm test`, `npm run build`, `git diff --check`
+- Codex contribution: Added Flow, Color Steps, and Beat Palette light-motion presets. The stepped modes use discrete musical color changes while holding brightness stable and retaining the Hue safety floor for transitions.
+- Human product/design decision: Keep the original smooth room-light behavior and add clearly visible color-step alternatives for performance and submission footage.
+- Verification: 13 test files and 49 tests passed; lint and production build passed.
+- Commit hash: `3b4df1c`
