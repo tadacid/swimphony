@@ -92,3 +92,4 @@ Keep this document updated during the primary Codex thread.
 - Human product/design decision: Keep the original smooth room-light behavior and add clearly visible color-step alternatives for performance and submission footage.
 - Verification: 13 test files and 49 tests passed; lint and production build passed.
 - Commit hash: `3b4df1c`
+- Follow-up: Beat Palette now changes hue once per BPM beat with an 80 ms color transition; Color Steps uses 220 ms transitions. Both hold brightness at 82% to avoid brightness flashing. Hue and browser update limits were adjusted only for these color-only modes. Verification increased to 50 passing tests. Commit: `c9212e5`.
