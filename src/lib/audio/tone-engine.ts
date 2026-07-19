@@ -3,6 +3,7 @@ import {
   MODE_PRESETS,
   type SoundMode,
 } from "@/lib/performance/mode-presets";
+import { grooveAtStep } from "@/lib/performance/groove-pattern";
 import type { PerformancePreset } from "@/lib/performance/preset-schema";
 import {
   arrangementAtBeat,
@@ -17,6 +18,9 @@ type ToneFilter = import("tone").Filter;
 type ToneReverb = import("tone").Reverb;
 type ToneGain = import("tone").Gain;
 type ToneSynth = import("tone").Synth;
+type ToneMonoSynth = import("tone").MonoSynth;
+type ToneMembraneSynth = import("tone").MembraneSynth;
+type ToneNoiseSynth = import("tone").NoiseSynth;
 
 export class ToneEngine {
   private tone: ToneRuntime | null = null;
@@ -26,6 +30,10 @@ export class ToneEngine {
   private reverb: ToneReverb | null = null;
   private gain: ToneGain | null = null;
   private accentSynth: ToneSynth | null = null;
+  private bassSynth: ToneMonoSynth | null = null;
+  private kickSynth: ToneMembraneSynth | null = null;
+  private hatSynth: ToneNoiseSynth | null = null;
+  private grooveGain: ToneGain | null = null;
   private latestFrame: PerformanceFrame | null = null;
   private schedulerId: ReturnType<typeof setInterval> | null = null;
   private lastNoteAt = 0;
@@ -34,6 +42,8 @@ export class ToneEngine {
   private currentMode: SoundMode = "original";
   private stepIndex = 0;
   private songBeat = 0;
+  private grooveStep = 0;
+  private lastGrooveAt = 0;
 
   async start(preset: PerformancePreset, mode: SoundMode = "original"): Promise<void> {
     if (this.started) {
@@ -65,6 +75,33 @@ export class ToneEngine {
       envelope: { attack: 0.015, decay: 0.12, sustain: 0, release: 0.3 },
       volume: -18,
     });
+    const bassSynth = new Tone.MonoSynth({
+      oscillator: { type: "sine" },
+      filter: { type: "lowpass", frequency: 1200, rolloff: -24, Q: 3 },
+      envelope: { attack: 0.01, decay: 0.18, sustain: 0.36, release: 0.24 },
+      filterEnvelope: {
+        attack: 0.01,
+        decay: 0.2,
+        sustain: 0.18,
+        release: 0.28,
+        baseFrequency: 90,
+        octaves: 4,
+      },
+      volume: -19,
+    });
+    const kickSynth = new Tone.MembraneSynth({
+      pitchDecay: 0.035,
+      octaves: 5,
+      oscillator: { type: "sine" },
+      envelope: { attack: 0.001, decay: 0.22, sustain: 0, release: 0.1 },
+      volume: -13,
+    });
+    const hatSynth = new Tone.NoiseSynth({
+      noise: { type: "white" },
+      envelope: { attack: 0.001, decay: 0.035, sustain: 0, release: 0.02 },
+      volume: -29,
+    });
+    const grooveGain = new Tone.Gain(0.64);
 
     synth.connect(filter);
     accentSynth.connect(filter);
@@ -72,6 +109,10 @@ export class ToneEngine {
     reverb.connect(panner);
     panner.connect(gain);
     gain.toDestination();
+    bassSynth.connect(grooveGain);
+    kickSynth.connect(grooveGain);
+    hatSynth.connect(grooveGain);
+    grooveGain.toDestination();
 
     this.tone = Tone;
     this.synth = synth;
@@ -80,9 +121,16 @@ export class ToneEngine {
     this.reverb = reverb;
     this.gain = gain;
     this.accentSynth = accentSynth;
+    this.bassSynth = bassSynth;
+    this.kickSynth = kickSynth;
+    this.hatSynth = hatSynth;
+    this.grooveGain = grooveGain;
     this.started = true;
     this.applyPreset(preset, mode);
-    this.schedulerId = setInterval(() => this.scheduleNote(), 50);
+    this.schedulerId = setInterval(() => {
+      this.scheduleGroove();
+      this.scheduleNote();
+    }, 25);
   }
 
   applyPreset(preset: PerformancePreset, mode: SoundMode = "original"): void {
@@ -90,6 +138,8 @@ export class ToneEngine {
       this.stepIndex = 0;
       this.songBeat = 0;
       this.lastNoteAt = 0;
+      this.grooveStep = 0;
+      this.lastGrooveAt = 0;
     }
     this.currentPreset = preset;
     this.currentMode = mode;
@@ -105,6 +155,15 @@ export class ToneEngine {
         type: mode === "acid" || mode === "psytrance" ? "sawtooth" : "triangle",
       },
     });
+    this.bassSynth?.set({
+      oscillator: {
+        type: mode === "acid" || mode === "psytrance"
+          ? "sawtooth"
+          : mode === "techno" || mode === "drum-and-bass"
+            ? "square"
+            : "sine",
+      },
+    });
     this.filter?.Q.rampTo(mode === "acid" ? 12 : mode === "psytrance" ? 6 : 1, 0.35);
     this.reverb?.wet.rampTo(preset.synth.reverb, 0.5);
   }
@@ -118,6 +177,76 @@ export class ToneEngine {
     this.panner?.pan.rampTo(frame.pan, 0.18);
     this.filter?.frequency.rampTo(frame.filterHz, 0.24);
     this.gain?.gain.rampTo(frame.velocity > 0 ? 1 : 0, frame.velocity > 0 ? 0.2 : 0.9);
+    const grooveEnergy = Math.min(
+      1,
+      frame.velocity / Math.max(0.05, this.currentPreset.safety.maxGain),
+    );
+    this.grooveGain?.gain.rampTo(0.52 + grooveEnergy * 0.16, 0.3);
+  }
+
+  private scheduleGroove(): void {
+    if (
+      this.currentMode === "original" ||
+      !this.tone ||
+      !this.currentPreset ||
+      !this.bassSynth ||
+      !this.kickSynth ||
+      !this.hatSynth
+    ) {
+      return;
+    }
+
+    const beatSeconds = 60 / this.currentPreset.bpm;
+    const stepMs = beatSeconds * 250;
+    const nowMs = performance.now();
+    if (this.lastGrooveAt === 0) this.lastGrooveAt = nowMs - stepMs;
+    if (nowMs - this.lastGrooveAt < stepMs) return;
+    this.lastGrooveAt = nowMs - this.lastGrooveAt > stepMs * 4
+      ? nowMs
+      : this.lastGrooveAt + stepMs;
+
+    const arrangement = arrangementAtBeat(this.songBeat);
+    const groove = grooveAtStep(this.currentMode, this.grooveStep);
+    const energy = this.latestFrame
+      ? Math.min(
+          1,
+          this.latestFrame.velocity / Math.max(0.05, this.currentPreset.safety.maxGain),
+        )
+      : 0;
+    const velocity = groove.velocityScale * arrangement.velocityScale;
+    const time = this.tone.now();
+
+    if (arrangement.play && groove.kick) {
+      this.kickSynth.triggerAttackRelease(
+        "C1",
+        Math.min(0.22, beatSeconds * 0.45),
+        time,
+        Math.min(0.72, 0.48 + velocity * 0.24),
+      );
+    }
+
+    if (arrangement.play && arrangement.bassEnabled && groove.bass) {
+      const note = this.grooveBassNote(
+        groove.bassOffset + arrangement.harmonicOffset,
+      );
+      this.bassSynth.triggerAttackRelease(
+        note,
+        Math.max(0.06, beatSeconds * groove.bassGateBeats),
+        time,
+        Math.min(0.34, 0.12 + velocity * 0.16 + energy * 0.05),
+      );
+    }
+
+    if (arrangement.play && groove.hat) {
+      this.hatSynth.triggerAttackRelease(
+        Math.min(0.08, beatSeconds * 0.18),
+        time,
+        Math.min(0.16, 0.055 + velocity * 0.055 + energy * 0.035),
+      );
+    }
+
+    this.grooveStep += 1;
+    this.songBeat = (this.songBeat + 0.25) % SONG_LENGTH_BEATS;
   }
 
   private scheduleNote(): void {
@@ -159,7 +288,10 @@ export class ToneEngine {
       ? 0
       : arrangement.harmonicOffset;
     const offset = (profile.sequence[step % profile.sequence.length] ?? 0) + phraseOffset;
-    const note = this.transpose(frame.note, offset);
+    const fishLead = this.currentMode === "original"
+      ? frame.note
+      : this.elevateFishLead(frame.note);
+    const note = this.transpose(fishLead, offset);
     const durationSeconds = Math.min(4.5, Math.max(0.05, beatSeconds * profile.gateBeats));
     const chordEvery = profile.chordEvery;
     const notes = chordEvery > 0 && step % chordEvery === 0
@@ -178,19 +310,6 @@ export class ToneEngine {
       this.filter?.frequency.rampTo(
         Math.max(180, Math.min(frame.filterHz * sweep, this.currentPreset.synth.filterMaxHz)),
         0.035,
-      );
-    }
-
-    if (
-      arrangement.bassEnabled &&
-      profile.bassEvery > 0 &&
-      step % profile.bassEvery === 0
-    ) {
-      this.accentSynth?.triggerAttackRelease(
-        this.transpose(note, -12),
-        Math.max(0.06, Math.min(0.42, beatSeconds * 0.38)),
-        this.tone.now(),
-        Math.min(0.3, arrangedVelocity * 0.58),
       );
     }
 
@@ -218,8 +337,31 @@ export class ToneEngine {
 
   private advanceSongStep(nowMs: number, intervalBeats: number): void {
     this.stepIndex += 1;
-    this.songBeat = (this.songBeat + intervalBeats) % SONG_LENGTH_BEATS;
+    if (this.currentMode === "original") {
+      this.songBeat = (this.songBeat + intervalBeats) % SONG_LENGTH_BEATS;
+    }
     this.lastNoteAt = nowMs;
+  }
+
+  private grooveBassNote(offset: number): string {
+    const fishPitch = this.latestFrame?.note?.match(/^([A-G](?:#|b)?)/)?.[1];
+    const anchor = `${fishPitch ?? this.currentPreset?.root ?? "C"}2`;
+    const positionOffset = this.latestFrame
+      ? this.latestFrame.pan < -0.34
+        ? -5
+        : this.latestFrame.pan > 0.34
+          ? 7
+          : 0
+      : 0;
+    return this.transpose(anchor, offset + positionOffset);
+  }
+
+  private elevateFishLead(note: string): string {
+    if (!this.tone) return note;
+    const frequency = this.tone.Frequency(note);
+    const midi = frequency.toMidi();
+    if (midi >= 60) return note;
+    return frequency.transpose(Math.ceil((60 - midi) / 12) * 12).toNote();
   }
 
   private transpose(note: string, semitones: number): string {
@@ -245,6 +387,10 @@ export class ToneEngine {
     this.silence();
     this.synth?.dispose();
     this.accentSynth?.dispose();
+    this.bassSynth?.dispose();
+    this.kickSynth?.dispose();
+    this.hatSynth?.dispose();
+    this.grooveGain?.dispose();
     this.filter?.dispose();
     this.reverb?.dispose();
     this.panner?.dispose();
@@ -256,12 +402,18 @@ export class ToneEngine {
     this.panner = null;
     this.gain = null;
     this.accentSynth = null;
+    this.bassSynth = null;
+    this.kickSynth = null;
+    this.hatSynth = null;
+    this.grooveGain = null;
     this.tone = null;
     this.latestFrame = null;
     this.currentPreset = null;
     this.currentMode = "original";
     this.stepIndex = 0;
     this.songBeat = 0;
+    this.grooveStep = 0;
+    this.lastGrooveAt = 0;
     this.started = false;
   }
 }
