@@ -42,7 +42,7 @@ type PendingHueUpdate = {
 };
 
 const FLOW_UPDATE_INTERVAL_MS = 1000;
-const SNAP_UPDATE_INTERVAL_MS = 100;
+const SNAP_UPDATE_INTERVAL_MS = 65;
 const HUE_ADAPTER_VERSION = 5;
 const HUE_AGENT = new Agent({
   rejectUnauthorized: false,

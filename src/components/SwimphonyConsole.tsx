@@ -151,7 +151,7 @@ export function SwimphonyConsole() {
 
   useEffect(() => {
     if (lightMotion !== "strobe") return;
-    const timer = window.setInterval(() => setLightClockMs(performance.now()), 40);
+    const timer = window.setInterval(() => setLightClockMs(performance.now()), 25);
     return () => window.clearInterval(timer);
   }, [lightMotion]);
 
@@ -270,7 +270,7 @@ export function SwimphonyConsole() {
     if (!hueStatus.enabled) return;
     const now = performance.now();
     const hueUpdateIntervalMs = lightMotion === "strobe"
-      ? 120
+      ? 65
       : lightMotion === "beat-palette" || lightMotion === "party-edge"
         ? 250
       : lightMotion === "color-steps"
