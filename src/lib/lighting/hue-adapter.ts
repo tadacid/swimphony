@@ -35,6 +35,7 @@ type HueResponse = {
 
 const FLOW_UPDATE_INTERVAL_MS = 1000;
 const SNAP_UPDATE_INTERVAL_MS = 250;
+const HUE_ADAPTER_VERSION = 2;
 
 function readApplicationKey(): string | undefined {
   const fromEnvironment = process.env.HUE_APPLICATION_KEY?.trim();
@@ -248,8 +249,15 @@ export class LocalHueAdapter implements LightingAdapter {
 
 const globalHue = globalThis as typeof globalThis & {
   swimphonyHueAdapter?: LocalHueAdapter;
+  swimphonyHueAdapterVersion?: number;
 };
 
-export const hueAdapter =
-  globalHue.swimphonyHueAdapter ??
-  (globalHue.swimphonyHueAdapter = new LocalHueAdapter());
+if (
+  !globalHue.swimphonyHueAdapter ||
+  globalHue.swimphonyHueAdapterVersion !== HUE_ADAPTER_VERSION
+) {
+  globalHue.swimphonyHueAdapter = new LocalHueAdapter();
+  globalHue.swimphonyHueAdapterVersion = HUE_ADAPTER_VERSION;
+}
+
+export const hueAdapter = globalHue.swimphonyHueAdapter;
