@@ -697,6 +697,48 @@ button:disabled {
   font-weight: 720;
 }
 
+.layer-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  margin: 16px 0 8px;
+}
+
+.layer-heading strong {
+  color: var(--muted);
+  font-size: 0.64rem;
+  font-weight: 620;
+}
+
+.layer-switcher {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.layer-switcher button {
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(244, 247, 239, 0.025);
+  color: var(--muted);
+  font-size: 0.66rem;
+  font-weight: 720;
+  letter-spacing: 0.04em;
+}
+
+.layer-switcher button[data-active="true"] {
+  border-color: rgba(220, 255, 114, 0.42);
+  background: rgba(220, 255, 114, 0.1);
+  color: var(--accent);
+}
+
+.layer-switcher button:disabled {
+  cursor: not-allowed;
+  opacity: 0.35;
+}
+
 .visual-preset-heading {
   display: flex;
   align-items: baseline;

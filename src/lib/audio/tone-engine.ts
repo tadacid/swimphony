@@ -22,6 +22,8 @@ type ToneMonoSynth = import("tone").MonoSynth;
 type ToneMembraneSynth = import("tone").MembraneSynth;
 type ToneNoiseSynth = import("tone").NoiseSynth;
 
+export type PerformanceLayer = "fish-solo" | "groove-fish";
+
 export class ToneEngine {
   private tone: ToneRuntime | null = null;
   private synth: TonePolySynth | null = null;
@@ -40,14 +42,19 @@ export class ToneEngine {
   private started = false;
   private currentPreset: PerformancePreset | null = null;
   private currentMode: SoundMode = "original";
+  private currentLayer: PerformanceLayer = "groove-fish";
   private stepIndex = 0;
   private songBeat = 0;
   private grooveStep = 0;
   private lastGrooveAt = 0;
 
-  async start(preset: PerformancePreset, mode: SoundMode = "original"): Promise<void> {
+  async start(
+    preset: PerformancePreset,
+    mode: SoundMode = "original",
+    layer: PerformanceLayer = "groove-fish",
+  ): Promise<void> {
     if (this.started) {
-      this.applyPreset(preset, mode);
+      this.applyPreset(preset, mode, layer);
       return;
     }
 
@@ -126,15 +133,19 @@ export class ToneEngine {
     this.hatSynth = hatSynth;
     this.grooveGain = grooveGain;
     this.started = true;
-    this.applyPreset(preset, mode);
+    this.applyPreset(preset, mode, layer);
     this.schedulerId = setInterval(() => {
       this.scheduleGroove();
       this.scheduleNote();
     }, 25);
   }
 
-  applyPreset(preset: PerformancePreset, mode: SoundMode = "original"): void {
-    if (this.currentMode !== mode) {
+  applyPreset(
+    preset: PerformancePreset,
+    mode: SoundMode = "original",
+    layer: PerformanceLayer = "groove-fish",
+  ): void {
+    if (this.currentMode !== mode || this.currentLayer !== layer) {
       this.stepIndex = 0;
       this.songBeat = 0;
       this.lastNoteAt = 0;
@@ -143,6 +154,7 @@ export class ToneEngine {
     }
     this.currentPreset = preset;
     this.currentMode = mode;
+    this.currentLayer = layer;
     this.synth?.set({
       oscillator: { type: preset.synth.oscillator },
       envelope: {
@@ -166,6 +178,7 @@ export class ToneEngine {
     });
     this.filter?.Q.rampTo(mode === "acid" ? 12 : mode === "psytrance" ? 6 : 1, 0.35);
     this.reverb?.wet.rampTo(preset.synth.reverb, 0.5);
+    this.grooveGain?.gain.rampTo(layer === "groove-fish" ? 0.64 : 0, 0.25);
   }
 
   update(frame: PerformanceFrame): void {
@@ -181,12 +194,16 @@ export class ToneEngine {
       1,
       frame.velocity / Math.max(0.05, this.currentPreset.safety.maxGain),
     );
-    this.grooveGain?.gain.rampTo(0.52 + grooveEnergy * 0.16, 0.3);
+    this.grooveGain?.gain.rampTo(
+      this.currentLayer === "groove-fish" ? 0.52 + grooveEnergy * 0.16 : 0,
+      0.3,
+    );
   }
 
   private scheduleGroove(): void {
     if (
       this.currentMode === "original" ||
+      this.currentLayer !== "groove-fish" ||
       !this.tone ||
       !this.currentPreset ||
       !this.bassSynth ||
@@ -288,7 +305,7 @@ export class ToneEngine {
       ? 0
       : arrangement.harmonicOffset;
     const offset = (profile.sequence[step % profile.sequence.length] ?? 0) + phraseOffset;
-    const fishLead = this.currentMode === "original"
+    const fishLead = this.currentMode === "original" || this.currentLayer === "fish-solo"
       ? frame.note
       : this.elevateFishLead(frame.note);
     const note = this.transpose(fishLead, offset);
@@ -310,6 +327,20 @@ export class ToneEngine {
       this.filter?.frequency.rampTo(
         Math.max(180, Math.min(frame.filterHz * sweep, this.currentPreset.synth.filterMaxHz)),
         0.035,
+      );
+    }
+
+    if (
+      this.currentLayer === "fish-solo" &&
+      arrangement.bassEnabled &&
+      profile.bassEvery > 0 &&
+      step % profile.bassEvery === 0
+    ) {
+      this.accentSynth?.triggerAttackRelease(
+        this.transpose(note, -12),
+        Math.max(0.06, Math.min(0.42, beatSeconds * 0.38)),
+        this.tone.now(),
+        Math.min(0.3, arrangedVelocity * 0.58),
       );
     }
 
@@ -337,7 +368,7 @@ export class ToneEngine {
 
   private advanceSongStep(nowMs: number, intervalBeats: number): void {
     this.stepIndex += 1;
-    if (this.currentMode === "original") {
+    if (this.currentMode === "original" || this.currentLayer === "fish-solo") {
       this.songBeat = (this.songBeat + intervalBeats) % SONG_LENGTH_BEATS;
     }
     this.lastNoteAt = nowMs;
@@ -410,6 +441,7 @@ export class ToneEngine {
     this.latestFrame = null;
     this.currentPreset = null;
     this.currentMode = "original";
+    this.currentLayer = "groove-fish";
     this.stepIndex = 0;
     this.songBeat = 0;
     this.grooveStep = 0;

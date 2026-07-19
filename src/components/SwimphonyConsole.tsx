@@ -11,7 +11,10 @@ import {
   LiveCameraTracker,
   SampleVideoTracker,
 } from "@/components/SampleVideoTracker";
-import { ToneEngine } from "@/lib/audio/tone-engine";
+import {
+  ToneEngine,
+  type PerformanceLayer,
+} from "@/lib/audio/tone-engine";
 import { audioReactiveLight } from "@/lib/lighting/audio-reactive-light";
 import { virtualLightStyle } from "@/lib/lighting/virtual-light";
 import { DEFAULT_PRESET } from "@/lib/performance/default-preset";
@@ -92,6 +95,10 @@ export function SwimphonyConsole() {
   const [source, setSource] = useState<ActiveSource>("camera");
   const [preset, setPreset] = useState<PerformancePreset>(DEFAULT_PRESET);
   const [soundMode, setSoundMode] = useState<SoundMode>("original");
+  const [performanceLayer, setPerformanceLayer] = useState<PerformanceLayer>("groove-fish");
+  const effectivePerformanceLayer: PerformanceLayer = soundMode === "original"
+    ? "fish-solo"
+    : performanceLayer;
   const [bpmDraft, setBpmDraft] = useState(String(DEFAULT_PRESET.bpm));
   const [prompt, setPrompt] = useState<string>(SAMPLE_PROMPTS[0]);
   const [audioActive, setAudioActive] = useState(false);
@@ -208,9 +215,9 @@ export function SwimphonyConsole() {
 
   useEffect(() => {
     if (audioActive) {
-      engineRef.current?.applyPreset(preset, soundMode);
+      engineRef.current?.applyPreset(preset, soundMode, effectivePerformanceLayer);
     }
-  }, [audioActive, preset, soundMode]);
+  }, [audioActive, effectivePerformanceLayer, preset, soundMode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -290,7 +297,7 @@ export function SwimphonyConsole() {
 
     try {
       const engine = new ToneEngine();
-      await engine.start(preset, soundMode);
+      await engine.start(preset, soundMode, effectivePerformanceLayer);
       engineRef.current = engine;
       setAudioActive(true);
       setMessage("Audio is live. The current FishState now controls the synth.");
@@ -325,6 +332,15 @@ export function SwimphonyConsole() {
     setPresetSource("built-in");
     setModel(`${option.label} mode`);
     setMessage(`${option.preset.name} is active. ${option.cue}.`);
+  }
+
+  function selectPerformanceLayer(nextLayer: PerformanceLayer) {
+    setPerformanceLayer(nextLayer);
+    setMessage(
+      nextLayer === "fish-solo"
+        ? "Fish Solo restores the original fish-driven performance for this genre."
+        : "Groove + Fish layers the fish lead over a continuous genre rhythm.",
+    );
   }
 
   function updateBpm(value: number) {
@@ -620,6 +636,30 @@ export function SwimphonyConsole() {
                   {option.label}
                 </button>
               ))}
+            </div>
+            <div className="layer-heading">
+              <span className="section-kicker">PLAY STYLE</span>
+              <strong>
+                {effectivePerformanceLayer === "fish-solo" ? "従来の金魚演奏" : "土台の曲＋金魚の上音"}
+              </strong>
+            </div>
+            <div className="layer-switcher" aria-label="Performance layer">
+              <button
+                type="button"
+                data-active={effectivePerformanceLayer === "fish-solo"}
+                onClick={() => selectPerformanceLayer("fish-solo")}
+              >
+                Fish Solo
+              </button>
+              <button
+                type="button"
+                data-active={effectivePerformanceLayer === "groove-fish"}
+                onClick={() => selectPerformanceLayer("groove-fish")}
+                disabled={soundMode === "original"}
+                title={soundMode === "original" ? "Original is always fish-only" : undefined}
+              >
+                Groove + Fish
+              </button>
             </div>
 
             <div className="visual-preset-heading">
