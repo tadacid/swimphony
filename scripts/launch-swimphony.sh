@@ -50,7 +50,9 @@ tell application "Google Chrome"
       set tabNumber to tabNumber + 1
       if URL of browserTab starts with "http://localhost:3000/" then
         set active tab index of browserWindow to tabNumber
+        set minimized of browserWindow to false
         set index of browserWindow to 1
+        activate
         return
       end if
     end repeat
