@@ -95,6 +95,7 @@ export function SwimphonyConsole() {
   });
   const [hueBusy, setHueBusy] = useState(false);
   const [quitting, setQuitting] = useState(false);
+  const [audienceMode, setAudienceMode] = useState(false);
   const engineRef = useRef<ToneEngine | null>(null);
   const lastHueUpdateRef = useRef(0);
 
@@ -211,6 +212,16 @@ export function SwimphonyConsole() {
   useEffect(() => {
     return () => engineRef.current?.stop();
   }, []);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      if (audienceMode && !document.fullscreenElement) {
+        setAudienceMode(false);
+      }
+    };
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, [audienceMode]);
 
   async function toggleAudio() {
     if (audioActive) {
@@ -354,9 +365,75 @@ export function SwimphonyConsole() {
     }
   }
 
+  async function enterAudienceMode() {
+    setAudienceMode(true);
+    try {
+      await document.documentElement.requestFullscreen();
+    } catch {
+      setMessage("Audience display is active inside the current window.");
+    }
+  }
+
+  async function exitAudienceMode() {
+    setAudienceMode(false);
+    if (document.fullscreenElement) {
+      await document.exitFullscreen().catch(() => undefined);
+    }
+  }
+
   return (
-    <main className="app-shell" style={virtualLightStyle(performanceLight)}>
+    <main
+      className="app-shell"
+      data-audience={audienceMode}
+      style={virtualLightStyle(performanceLight)}
+    >
       <div className="virtual-light-wash" aria-hidden="true" />
+      {audienceMode ? (
+        <section className="audience-hud" aria-label="Audience performance display">
+          <div className="audience-topline">
+            <div>
+              <span>SWIMPHONY · LIVING INSTRUMENT</span>
+              <strong>{MODE_PRESETS[soundMode].label}</strong>
+            </div>
+            <div className="audience-live" data-active={fish.detected && audioActive}>
+              <span />
+              {fish.detected ? "FISH TRACKED" : "WAITING FOR FISH"}
+            </div>
+            <button type="button" onClick={exitAudienceMode}>
+              操作画面へ
+            </button>
+          </div>
+
+          <div className="audience-output">
+            <span>CURRENT NOTE</span>
+            <strong>{frame.note ?? "—"}</strong>
+            <p>{audioActive ? preset.name : "PRESS START AUDIO BEFORE THE SHOW"}</p>
+          </div>
+
+          <div className="audience-causality">
+            <article data-active={fish.detected}>
+              <span>HEIGHT</span>
+              <strong>{Math.round((1 - fish.y) * 100)}%</strong>
+              <b>→ PITCH</b>
+            </article>
+            <article data-active={fish.detected && fish.speed > 0.22}>
+              <span>SPEED</span>
+              <strong>{Math.round(fish.speed * 100)}%</strong>
+              <b>→ RHYTHM</b>
+            </article>
+            <article data-active={frame.accent}>
+              <span>TURN</span>
+              <strong>{frame.accent ? "ACCENT" : "FLOW"}</strong>
+              <b>→ IMPACT</b>
+            </article>
+            <article data-active={hueStatus.enabled && hueStatus.connected}>
+              <span>LIGHT</span>
+              <strong>{Math.round(performanceLight.brightness)}%</strong>
+              <b>→ HUE</b>
+            </article>
+          </div>
+        </section>
+      ) : null}
       <header className="app-header">
         <div>
           <p className="eyebrow">ONE CAMERA · LIVING INSTRUMENT</p>
@@ -367,6 +444,14 @@ export function SwimphonyConsole() {
             <span>Source</span>
             <strong>{SOURCE_LABELS[source]}</strong>
           </div>
+          <button
+            className="audience-button"
+            type="button"
+            onClick={enterAudienceMode}
+          >
+            <span aria-hidden="true">◫</span>
+            観客表示
+          </button>
           <button
             className="quit-button"
             type="button"
