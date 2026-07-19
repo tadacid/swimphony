@@ -142,6 +142,7 @@ export class LocalHueAdapter implements LightingAdapter {
   private enabled: boolean;
   private lastUpdateAt = 0;
   private connected = false;
+  private pendingOperation: Promise<void> = Promise.resolve();
 
   constructor(private readonly config: HueConfig | null = readConfig()) {
     this.enabled = config?.enabledByDefault ?? false;
@@ -186,41 +187,56 @@ export class LocalHueAdapter implements LightingAdapter {
 
   async update(light: LightFrame, confidence: number): Promise<void> {
     if (!this.config || !this.enabled) return;
+    const config = this.config;
     const now = Date.now();
     if (now - this.lastUpdateAt < UPDATE_INTERVAL_MS) return;
     this.lastUpdateAt = now;
 
     const safe = safeHueFrame(light, confidence);
     const xy = hslToHueXy(safe.hue, safe.saturation, 50);
-    await hueRequest(
-      this.config,
-      `/clip/v2/resource/grouped_light/${encodeURIComponent(this.config.groupedLightId)}`,
-      "PUT",
-      {
-        on: { on: true },
-        dimming: { brightness: safe.brightness },
-        color: { xy },
-        dynamics: { duration: safe.transitionMs },
-      },
-    );
-    this.connected = true;
+    const operation = this.pendingOperation
+      .catch(() => undefined)
+      .then(async () => {
+        if (!this.enabled) return;
+        await hueRequest(
+          config,
+          `/clip/v2/resource/grouped_light/${encodeURIComponent(config.groupedLightId)}`,
+          "PUT",
+          {
+            on: { on: true },
+            dimming: { brightness: safe.brightness },
+            color: { xy },
+            dynamics: { duration: safe.transitionMs },
+          },
+        );
+        this.connected = true;
+      });
+    this.pendingOperation = operation;
+    await operation;
   }
 
   async reset(): Promise<void> {
     if (!this.config) return;
+    const config = this.config;
     this.enabled = false;
     const defaultWarmWhite = { x: 0.3684, y: 0.3638 };
-    await hueRequest(
-      this.config,
-      `/clip/v2/resource/grouped_light/${encodeURIComponent(this.config.groupedLightId)}`,
-      "PUT",
-      {
-        on: { on: true },
-        dimming: { brightness: 100 },
-        color: { xy: defaultWarmWhite },
-        dynamics: { duration: 2500 },
-      },
-    );
+    const operation = this.pendingOperation
+      .catch(() => undefined)
+      .then(async () => {
+        await hueRequest(
+          config,
+          `/clip/v2/resource/grouped_light/${encodeURIComponent(config.groupedLightId)}`,
+          "PUT",
+          {
+            on: { on: true },
+            dimming: { brightness: 100 },
+            color: { xy: defaultWarmWhite },
+            dynamics: { duration: 2500 },
+          },
+        );
+      });
+    this.pendingOperation = operation;
+    await operation;
     this.lastUpdateAt = Date.now();
     this.connected = true;
   }
