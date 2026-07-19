@@ -24,7 +24,7 @@ export const PERFORMANCE_PRESET_JSON_SCHEMA = {
       type: "string",
       enum: ["major_pentatonic", "minor_pentatonic", "dorian", "major", "minor"],
     },
-    bpm: { type: "number", minimum: 40, maximum: 140 },
+    bpm: { type: "number", minimum: 40, maximum: 180 },
     octaveRange: {
       type: "array",
       minItems: 2,

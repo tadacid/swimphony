@@ -4,6 +4,10 @@ import {
   type SoundMode,
 } from "@/lib/performance/mode-presets";
 import type { PerformancePreset } from "@/lib/performance/preset-schema";
+import {
+  arrangementAtBeat,
+  SONG_LENGTH_BEATS,
+} from "@/lib/performance/song-arrangement";
 
 // Tone.js objects are intentionally kept behind this small adapter.
 type ToneRuntime = typeof import("tone");
@@ -29,6 +33,7 @@ export class ToneEngine {
   private currentPreset: PerformancePreset | null = null;
   private currentMode: SoundMode = "original";
   private stepIndex = 0;
+  private songBeat = 0;
 
   async start(preset: PerformancePreset, mode: SoundMode = "original"): Promise<void> {
     if (this.started) {
@@ -83,6 +88,7 @@ export class ToneEngine {
   applyPreset(preset: PerformancePreset, mode: SoundMode = "original"): void {
     if (this.currentMode !== mode) {
       this.stepIndex = 0;
+      this.songBeat = 0;
       this.lastNoteAt = 0;
     }
     this.currentPreset = preset;
@@ -130,28 +136,41 @@ export class ToneEngine {
 
     const profile = MODE_PRESETS[this.currentMode].rhythm;
     const beatSeconds = 60 / this.currentPreset.bpm;
-    const intervalMs = Math.max(
-      beatSeconds * 1000 * profile.minimumBeatFraction,
-      frame.noteIntervalMs * profile.intervalScale,
+    const gridMs = beatSeconds * 1000 * profile.minimumBeatFraction;
+    const gridSteps = Math.max(
+      1,
+      Math.round((frame.noteIntervalMs * profile.intervalScale) / gridMs),
     );
+    const intervalMs = gridMs * gridSteps;
+    const intervalBeats = profile.minimumBeatFraction * gridSteps;
     const nowMs = performance.now();
     if (nowMs - this.lastNoteAt < intervalMs) {
       return;
     }
 
     const step = this.stepIndex;
-    const offset = profile.sequence[step % profile.sequence.length] ?? 0;
+    const arrangement = arrangementAtBeat(this.songBeat);
+    if (!arrangement.play) {
+      this.advanceSongStep(nowMs, intervalBeats);
+      return;
+    }
+
+    const phraseOffset = this.currentMode === "gagaku"
+      ? 0
+      : arrangement.harmonicOffset;
+    const offset = (profile.sequence[step % profile.sequence.length] ?? 0) + phraseOffset;
     const note = this.transpose(frame.note, offset);
     const durationSeconds = Math.min(4.5, Math.max(0.05, beatSeconds * profile.gateBeats));
     const chordEvery = profile.chordEvery;
     const notes = chordEvery > 0 && step % chordEvery === 0
       ? this.chordFor(note)
       : note;
+    const arrangedVelocity = frame.velocity * arrangement.velocityScale;
     this.synth.triggerAttackRelease(
       notes,
       durationSeconds,
       this.tone.now(),
-      Array.isArray(notes) ? Math.min(0.34, frame.velocity * 0.72) : frame.velocity,
+      Array.isArray(notes) ? Math.min(0.34, arrangedVelocity * 0.72) : arrangedVelocity,
     );
 
     if (this.currentMode === "acid") {
@@ -162,22 +181,26 @@ export class ToneEngine {
       );
     }
 
-    if (profile.bassEvery > 0 && step % profile.bassEvery === 0) {
+    if (
+      arrangement.bassEnabled &&
+      profile.bassEvery > 0 &&
+      step % profile.bassEvery === 0
+    ) {
       this.accentSynth?.triggerAttackRelease(
         this.transpose(note, -12),
         Math.max(0.06, Math.min(0.42, beatSeconds * 0.38)),
         this.tone.now(),
-        Math.min(0.3, frame.velocity * 0.58),
+        Math.min(0.3, arrangedVelocity * 0.58),
       );
     }
 
     const rhythmicAccent = profile.accentEvery > 0 && step % profile.accentEvery === 0;
-    if (frame.accent || rhythmicAccent) {
+    if (frame.accent || rhythmicAccent || arrangement.forceAccent) {
       this.accentSynth?.triggerAttackRelease(
         note,
         "16n",
         this.tone.now() + 0.035,
-        Math.min(0.34, frame.velocity * 0.5),
+        Math.min(0.34, arrangedVelocity * 0.5),
       );
     }
 
@@ -186,11 +209,16 @@ export class ToneEngine {
         note,
         Math.min(0.5, beatSeconds * 0.55),
         this.tone.now() + beatSeconds * 0.72,
-        Math.min(0.18, frame.velocity * 0.32),
+        Math.min(0.18, arrangedVelocity * 0.32),
       );
     }
 
+    this.advanceSongStep(nowMs, intervalBeats);
+  }
+
+  private advanceSongStep(nowMs: number, intervalBeats: number): void {
     this.stepIndex += 1;
+    this.songBeat = (this.songBeat + intervalBeats) % SONG_LENGTH_BEATS;
     this.lastNoteAt = nowMs;
   }
 
@@ -233,6 +261,7 @@ export class ToneEngine {
     this.currentPreset = null;
     this.currentMode = "original";
     this.stepIndex = 0;
+    this.songBeat = 0;
     this.started = false;
   }
 }

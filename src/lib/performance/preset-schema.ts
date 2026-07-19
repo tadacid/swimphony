@@ -14,7 +14,7 @@ const BasePerformancePresetSchema = z
     description: z.string().min(1).max(180),
     root: z.enum(["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]),
     scale: ScaleNameSchema,
-    bpm: z.number().min(40).max(140),
+    bpm: z.number().min(40).max(180),
     octaveRange: z.tuple([
       z.number().int().min(2).max(5),
       z.number().int().min(3).max(6),

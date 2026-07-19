@@ -22,6 +22,11 @@ import {
   type SoundMode,
 } from "@/lib/performance/mode-presets";
 import type { PerformancePreset } from "@/lib/performance/preset-schema";
+import {
+  clampBpm,
+  MAX_BPM,
+  MIN_BPM,
+} from "@/lib/performance/song-arrangement";
 import { simulateFishState } from "@/lib/tracking/simulator";
 import { EMPTY_FISH_STATE, type FishState } from "@/lib/tracking/types";
 
@@ -77,6 +82,7 @@ export function SwimphonyConsole() {
   const [source, setSource] = useState<ActiveSource>("camera");
   const [preset, setPreset] = useState<PerformancePreset>(DEFAULT_PRESET);
   const [soundMode, setSoundMode] = useState<SoundMode>("original");
+  const [bpmDraft, setBpmDraft] = useState(String(DEFAULT_PRESET.bpm));
   const [prompt, setPrompt] = useState<string>(SAMPLE_PROMPTS[0]);
   const [audioActive, setAudioActive] = useState(false);
   const [presetSource, setPresetSource] = useState<"built-in" | "codex-local" | "fallback">(
@@ -265,9 +271,22 @@ export function SwimphonyConsole() {
     const option = MODE_PRESETS[nextMode];
     setSoundMode(nextMode);
     setPreset(option.preset);
+    setBpmDraft(String(option.preset.bpm));
     setPresetSource("built-in");
     setModel(`${option.label} mode`);
     setMessage(`${option.preset.name} is active. ${option.cue}.`);
+  }
+
+  function updateBpm(value: number) {
+    const bpm = clampBpm(value);
+    setPreset((current) => ({ ...current, bpm }));
+    setBpmDraft(String(bpm));
+    setMessage(`${bpm} BPM · 16-bar song arrangement is active.`);
+  }
+
+  function commitBpm() {
+    const parsed = Number(bpmDraft);
+    updateBpm(Number.isFinite(parsed) && bpmDraft.trim() ? parsed : preset.bpm);
   }
 
   const handleCameraUnavailable = useCallback((reason: string) => {
@@ -298,6 +317,7 @@ export function SwimphonyConsole() {
       }
 
       setPreset(data.preset);
+      setBpmDraft(String(data.preset.bpm));
       setPresetSource(data.source);
       setModel(data.model);
       setMessage(
@@ -399,7 +419,11 @@ export function SwimphonyConsole() {
           <div className="audience-output">
             <span>CURRENT NOTE</span>
             <strong>{frame.note ?? "—"}</strong>
-            <p>{audioActive ? preset.name : "PRESS START AUDIO BEFORE THE SHOW"}</p>
+            <p>
+              {audioActive
+                ? `${preset.name} · ${preset.bpm} BPM · 16 BAR FORM`
+                : "PRESS START AUDIO BEFORE THE SHOW"}
+            </p>
           </div>
 
           <div className="audience-causality">
@@ -505,6 +529,43 @@ export function SwimphonyConsole() {
                   {option.label}
                 </button>
               ))}
+            </div>
+
+            <div className="tempo-control">
+              <div>
+                <span className="section-kicker">TEMPO</span>
+                <strong>16 BAR SONG FORM</strong>
+              </div>
+              <button
+                type="button"
+                onClick={() => updateBpm(preset.bpm - 1)}
+                aria-label="BPMを1下げる"
+              >
+                −
+              </button>
+              <label>
+                <input
+                  type="number"
+                  min={MIN_BPM}
+                  max={MAX_BPM}
+                  step={1}
+                  value={bpmDraft}
+                  onChange={(event) => setBpmDraft(event.target.value)}
+                  onBlur={commitBpm}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") event.currentTarget.blur();
+                  }}
+                  aria-label="BPM"
+                />
+                <span>BPM</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => updateBpm(preset.bpm + 1)}
+                aria-label="BPMを1上げる"
+              >
+                +
+              </button>
             </div>
 
             <div className="source-switcher" aria-label="Tracking source">
