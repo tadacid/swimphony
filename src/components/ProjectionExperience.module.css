@@ -1,0 +1,138 @@
+.experience {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: none;
+  background: #06100c;
+  color: #f4e8c2;
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.experience[data-controls="true"] {
+  cursor: default;
+}
+
+.canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+}
+
+.signature {
+  position: absolute;
+  top: clamp(22px, 4vw, 62px);
+  left: clamp(24px, 4.5vw, 76px);
+  display: grid;
+  gap: 5px;
+  opacity: 0.72;
+  mix-blend-mode: screen;
+}
+
+.signature span,
+.live,
+.controls span {
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: clamp(0.54rem, 0.8vw, 0.7rem);
+  font-weight: 700;
+  letter-spacing: 0.2em;
+}
+
+.signature strong {
+  font-size: clamp(0.9rem, 1.4vw, 1.3rem);
+  font-weight: 400;
+  letter-spacing: 0.09em;
+}
+
+.live {
+  position: absolute;
+  top: clamp(24px, 4vw, 64px);
+  right: clamp(24px, 4.5vw, 76px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(237, 226, 190, 0.46);
+}
+
+.live > span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.live[data-connected="true"] {
+  color: rgba(245, 202, 100, 0.88);
+}
+
+.note {
+  position: absolute;
+  right: clamp(24px, 4.5vw, 76px);
+  bottom: clamp(26px, 4vw, 62px);
+  color: rgba(246, 214, 132, 0.32);
+  font-size: clamp(2.5rem, 8vw, 8rem);
+  font-style: italic;
+  font-weight: 400;
+  line-height: 0.8;
+  transition: opacity 600ms ease;
+}
+
+.controls {
+  position: absolute;
+  left: 50%;
+  bottom: clamp(18px, 3vw, 42px);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px 9px 18px;
+  border: 1px solid rgba(242, 211, 132, 0.16);
+  border-radius: 999px;
+  background: rgba(4, 13, 10, 0.78);
+  opacity: 0;
+  transform: translate(-50%, 12px);
+  transition: opacity 500ms ease, transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: none;
+}
+
+.experience[data-controls="true"] .controls {
+  opacity: 1;
+  transform: translate(-50%, 0);
+  pointer-events: auto;
+}
+
+.controls > div {
+  display: grid;
+  min-width: 150px;
+}
+
+.controls span {
+  color: rgba(240, 221, 174, 0.46);
+  font-size: 0.52rem;
+}
+
+.controls strong {
+  font-size: 0.84rem;
+  font-weight: 400;
+}
+
+.controls button {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid rgba(242, 211, 132, 0.16);
+  border-radius: 999px;
+  background: transparent;
+  color: rgba(246, 229, 187, 0.82);
+  font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-size: 0.68rem;
+}
+
+.controls button:hover {
+  border-color: rgba(242, 211, 132, 0.52);
+  color: #f8e7b9;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .controls,
+  .note {
+    transition: none;
+  }
+}

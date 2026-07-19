@@ -135,6 +135,40 @@ button:disabled {
   outline-offset: 3px;
 }
 
+.projection-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 0 14px;
+  border: 1px solid rgba(244, 198, 93, 0.4);
+  border-radius: 999px;
+  background: rgba(244, 198, 93, 0.08);
+  color: #f4cf79;
+  font-size: 0.72rem;
+  font-weight: 680;
+  letter-spacing: 0.04em;
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    transform 180ms ease;
+}
+
+.projection-button span {
+  font-size: 0.82rem;
+}
+
+.projection-button:hover {
+  border-color: #f4cf79;
+  background: rgba(244, 198, 93, 0.15);
+  transform: translateY(-1px);
+}
+
+.projection-button:focus-visible {
+  outline: 2px solid #f4cf79;
+  outline-offset: 3px;
+}
+
 .quit-button {
   display: inline-flex;
   align-items: center;
@@ -661,6 +695,58 @@ button:disabled {
   background: var(--accent);
   color: var(--accent-ink);
   font-weight: 720;
+}
+
+.visual-preset-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 7px;
+}
+
+.visual-preset-heading .section-kicker {
+  margin: 0;
+  color: #f4cf79;
+}
+
+.visual-preset-heading strong {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 560;
+}
+
+.visual-preset-switcher {
+  margin: 0 0 12px;
+}
+
+.visual-preset-switcher button {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid rgba(244, 198, 93, 0.3);
+  border-radius: 12px;
+  background:
+    radial-gradient(circle at 92% 50%, rgba(244, 198, 93, 0.16), transparent 30%),
+    rgba(244, 198, 93, 0.035);
+  color: #f2d18a;
+  text-align: left;
+}
+
+.visual-preset-switcher span {
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 0.92rem;
+}
+
+.visual-preset-switcher small {
+  color: rgba(244, 247, 239, 0.48);
+  font-size: 0.58rem;
+  letter-spacing: 0.03em;
+}
+
+.visual-preset-switcher button[data-active="true"] {
+  box-shadow: inset 0 0 0 1px rgba(244, 198, 93, 0.08);
 }
 
 .tempo-control {

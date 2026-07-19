@@ -11,6 +11,7 @@ Swimphony is a one-camera web application that tracks a goldfish and converts it
 - A shared `FishState` model for camera, video, dual-camera, and future TrueDepth inputs
 - A Tone.js audio engine with a tracking-independent note scheduler and clean stop behavior
 - A smooth, confidence-aware virtual-light renderer
+- A separate projector window with selectable visual presets and a camera-free Golden Trail view
 - A local Codex Conductor that turns natural-language moods into validated sound-and-light presets
 - Scope, architecture, testing, demo, and Codex handoff documents
 - Reference photos of the actual aquarium
@@ -65,6 +66,10 @@ The tracker runs at about 12 Hz while video playback stays smooth. The supplied 
 The selected camera, aquarium ROI, and fish color are saved locally. The next launch restores them and starts tracking automatically. The video frame also follows the camera's real aspect ratio so clicking the fish maps to the correct source pixel. Browser audio still requires one **Start audio** click after a full reload.
 
 If permission is denied or no camera is available, Swimphony returns to the recorded telemetry demo without reloading.
+
+## Projector output
+
+Choose **投影画面** in the header to open a separate audience window. Move that window to the projector and press **全画面**. The operator keeps the camera and controls on the Mac while the audience sees only the generated visual. The first visual preset, **金色の光跡**, turns the tracked position and speed into a slowly fading golden trail. No camera image is sent to the projection window.
 
 ## Begin the Codex build
 

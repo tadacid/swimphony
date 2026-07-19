@@ -23,6 +23,16 @@ import {
 } from "@/lib/performance/mode-presets";
 import type { PerformancePreset } from "@/lib/performance/preset-schema";
 import {
+  DEFAULT_VISUAL_PRESET,
+  VISUAL_PRESETS,
+  type VisualPresetId,
+} from "@/lib/projection/presets";
+import {
+  PROJECTION_CHANNEL,
+  PROJECTION_STORAGE_KEY,
+  type ProjectionSignal,
+} from "@/lib/projection/signal";
+import {
   clampBpm,
   MAX_BPM,
   MIN_BPM,
@@ -102,8 +112,10 @@ export function SwimphonyConsole() {
   const [hueBusy, setHueBusy] = useState(false);
   const [quitting, setQuitting] = useState(false);
   const [audienceMode, setAudienceMode] = useState(false);
+  const [visualPreset, setVisualPreset] = useState<VisualPresetId>(DEFAULT_VISUAL_PRESET);
   const engineRef = useRef<ToneEngine | null>(null);
   const lastHueUpdateRef = useRef(0);
+  const projectionChannelRef = useRef<BroadcastChannel | null>(null);
 
   const frame = useMemo(
     () => mapFishToPerformance(fish, preset),
@@ -155,6 +167,44 @@ export function SwimphonyConsole() {
       engineRef.current?.update(frame);
     }
   }, [audioActive, frame]);
+
+  useEffect(() => {
+    const channel = new BroadcastChannel(PROJECTION_CHANNEL);
+    projectionChannelRef.current = channel;
+    return () => {
+      channel.close();
+      projectionChannelRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
+    const signal: ProjectionSignal = {
+      version: 1,
+      sentAt: Date.now(),
+      fish: {
+        x: fish.x,
+        y: fish.y,
+        speed: fish.speed,
+        direction: fish.direction,
+        acceleration: fish.acceleration,
+        confidence: fish.confidence,
+        detected: fish.detected,
+      },
+      light: performanceLight,
+      note: frame.note,
+      accent: frame.accent,
+      bpm: preset.bpm,
+      modeLabel: MODE_PRESETS[soundMode].label,
+      visualPreset,
+      audioActive,
+    };
+    projectionChannelRef.current?.postMessage(signal);
+    try {
+      localStorage.setItem(PROJECTION_STORAGE_KEY, JSON.stringify(signal));
+    } catch {
+      // Projection still receives live updates through BroadcastChannel.
+    }
+  }, [audioActive, fish, frame.accent, frame.note, performanceLight, preset.bpm, soundMode, visualPreset]);
 
   useEffect(() => {
     if (audioActive) {
@@ -412,6 +462,20 @@ export function SwimphonyConsole() {
     }
   }
 
+  function openProjection() {
+    const projectionWindow = window.open(
+      "/projection",
+      "swimphony-projection",
+      "popup,width=1440,height=900",
+    );
+    if (!projectionWindow) {
+      setMessage("Chromeでポップアップを許可して、もう一度投影画面を開いてください。");
+      return;
+    }
+    projectionWindow.focus();
+    setMessage("投影画面を開きました。プロジェクターへ移動して「全画面」を押してください。");
+  }
+
   return (
     <main
       className="app-shell"
@@ -488,6 +552,14 @@ export function SwimphonyConsole() {
             観客表示
           </button>
           <button
+            className="projection-button"
+            type="button"
+            onClick={openProjection}
+          >
+            <span aria-hidden="true">↗</span>
+            投影画面
+          </button>
+          <button
             className="quit-button"
             type="button"
             onClick={quitApplication}
@@ -546,6 +618,25 @@ export function SwimphonyConsole() {
                   title={option.cue}
                 >
                   {option.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="visual-preset-heading">
+              <span className="section-kicker">VISUAL PRESET</span>
+              <strong>プロジェクター出力</strong>
+            </div>
+            <div className="visual-preset-switcher" aria-label="Visual preset">
+              {VISUAL_PRESETS.map((option) => (
+                <button
+                  key={option.id}
+                  type="button"
+                  data-active={visualPreset === option.id}
+                  onClick={() => setVisualPreset(option.id)}
+                  title={option.cue}
+                >
+                  <span>{option.label}</span>
+                  <small>{option.cue}</small>
                 </button>
               ))}
             </div>
