@@ -126,6 +126,7 @@ export function SwimphonyConsole() {
   const [audienceMode, setAudienceMode] = useState(false);
   const [visualPreset, setVisualPreset] = useState<VisualPresetId>(DEFAULT_VISUAL_PRESET);
   const [lightMotion, setLightMotion] = useState<LightMotionMode>("flow");
+  const [lightClockMs, setLightClockMs] = useState(() => performance.now());
   const engineRef = useRef<ToneEngine | null>(null);
   const lastHueUpdateRef = useRef(0);
   const projectionChannelRef = useRef<BroadcastChannel | null>(null);
@@ -139,9 +140,20 @@ export function SwimphonyConsole() {
     [fish.timestamp, frame, preset],
   );
   const performanceLight = useMemo(
-    () => applyLightMotion(audioLight, lightMotion, fish.timestamp, preset.bpm),
-    [audioLight, fish.timestamp, lightMotion, preset.bpm],
+    () => applyLightMotion(
+      audioLight,
+      lightMotion,
+      lightMotion === "strobe" ? lightClockMs : fish.timestamp,
+      preset.bpm,
+    ),
+    [audioLight, fish.timestamp, lightClockMs, lightMotion, preset.bpm],
   );
+
+  useEffect(() => {
+    if (lightMotion !== "strobe") return;
+    const timer = window.setInterval(() => setLightClockMs(performance.now()), 40);
+    return () => window.clearInterval(timer);
+  }, [lightMotion]);
 
   const acceptFishState = useCallback((nextFish: FishState) => {
     setFish(nextFish);

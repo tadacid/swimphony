@@ -307,7 +307,6 @@ export class LocalHueAdapter implements LightingAdapter {
             );
           }
           this.connected = true;
-          this.lastUpdateAt = Date.now();
           next = this.queuedUpdate;
         }
       });

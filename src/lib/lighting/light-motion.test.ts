@@ -53,4 +53,11 @@ describe("light motion presets", () => {
     expect(frames.map((frame) => frame.brightness)).toEqual([100, 0, 100, 0]);
     expect(frames.every((frame) => frame.transitionMs === 0)).toBe(true);
   });
+
+  it("uses a different color for every visible strobe pulse", () => {
+    const visibleFrames = [0, 500, 1000, 1500].map((elapsedMs) =>
+      applyLightMotion(LIGHT, "strobe", elapsedMs, 120));
+
+    expect(new Set(visibleFrames.map((frame) => frame.hue)).size).toBe(4);
+  });
 });

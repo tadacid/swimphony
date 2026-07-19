@@ -66,9 +66,11 @@ export function applyLightMotion(
 
   const random = pseudoRandomStep(step);
   if (mode === "strobe") {
+    const pulse = Math.floor(step / 2);
+    const hueIndex = (pulse * 5 + 3) % PARTY_PALETTE.length;
     return {
       ...light,
-      hue: PARTY_PALETTE[random % PARTY_PALETTE.length] ?? PARTY_PALETTE[0],
+      hue: PARTY_PALETTE[hueIndex] ?? PARTY_PALETTE[0],
       saturation: 90,
       brightness: step % 2 === 0 ? 100 : 0,
       transitionMs: 0,
