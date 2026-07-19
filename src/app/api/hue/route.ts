@@ -29,6 +29,19 @@ export async function PATCH(request: Request): Promise<Response> {
   }
 }
 
+export async function DELETE(): Promise<Response> {
+  try {
+    await hueAdapter.reset();
+    return Response.json(await hueAdapter.getStatus(true));
+  } catch (error) {
+    console.error(
+      "Hue default reset failed",
+      error instanceof Error ? error.message : "Unknown error",
+    );
+    return Response.json({ error: "Hue could not return to default." }, { status: 503 });
+  }
+}
+
 export async function POST(request: Request): Promise<Response> {
   try {
     const body = HueUpdateSchema.parse(await request.json());

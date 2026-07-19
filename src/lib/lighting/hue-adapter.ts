@@ -209,15 +209,15 @@ export class LocalHueAdapter implements LightingAdapter {
   async reset(): Promise<void> {
     if (!this.config) return;
     this.enabled = false;
-    const xy = hslToHueXy(40, 12, 50);
+    const defaultWarmWhite = { x: 0.3684, y: 0.3638 };
     await hueRequest(
       this.config,
       `/clip/v2/resource/grouped_light/${encodeURIComponent(this.config.groupedLightId)}`,
       "PUT",
       {
         on: { on: true },
-        dimming: { brightness: 55 },
-        color: { xy },
+        dimming: { brightness: 100 },
+        color: { xy: defaultWarmWhite },
         dynamics: { duration: 2500 },
       },
     );

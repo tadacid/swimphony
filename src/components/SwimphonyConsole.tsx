@@ -354,6 +354,25 @@ export function SwimphonyConsole() {
     }
   }
 
+  async function resetHueToDefault() {
+    if (!hueStatus.available || hueBusy) return;
+    setHueBusy(true);
+    try {
+      const response = await fetch("/api/hue", { method: "DELETE" });
+      if (!response.ok) throw new Error("Hue reset failed");
+      setHueStatus(await response.json() as HueStatus);
+      setMessage("Hue returned to the saved warm-white default at 100% brightness. Sync is off.");
+    } catch {
+      setHueStatus((status) => ({
+        ...status,
+        connected: false,
+        message: "Hue could not return to default.",
+      }));
+    } finally {
+      setHueBusy(false);
+    }
+  }
+
   async function quitApplication() {
     if (quitting) return;
     setQuitting(true);
@@ -364,7 +383,7 @@ export function SwimphonyConsole() {
     setHueStatus((status) => ({
       ...status,
       enabled: false,
-      message: "Returning Hue to warm white…",
+      message: "Returning Hue to the saved warm-white default at 100%…",
     }));
 
     try {
@@ -673,6 +692,15 @@ export function SwimphonyConsole() {
                 {hueBusy ? "Checking…" : hueStatus.enabled ? "Disable" : "Enable"}
               </button>
             </div>
+            <button
+              className="hue-default-button"
+              type="button"
+              onClick={resetHueToDefault}
+              disabled={!hueStatus.available || hueBusy}
+            >
+              <span>DEFAULT LIGHT</span>
+              <strong>いつもの暖色 · 明るさ100%</strong>
+            </button>
             <span className="section-kicker">CURRENT MAPPING</span>
             <dl className="mapping-list">
               <div>
