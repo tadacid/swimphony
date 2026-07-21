@@ -126,7 +126,6 @@ export function SwimphonyConsole() {
   const [audienceMode, setAudienceMode] = useState(false);
   const [visualPreset, setVisualPreset] = useState<VisualPresetId>(DEFAULT_VISUAL_PRESET);
   const [lightMotion, setLightMotion] = useState<LightMotionMode>("flow");
-  const [lightClockMs, setLightClockMs] = useState(() => performance.now());
   const engineRef = useRef<ToneEngine | null>(null);
   const lastHueUpdateRef = useRef(0);
   const quitInitiatedRef = useRef(false);
@@ -144,17 +143,11 @@ export function SwimphonyConsole() {
     () => applyLightMotion(
       audioLight,
       lightMotion,
-      lightMotion === "strobe" ? lightClockMs : fish.timestamp,
+      fish.timestamp,
       preset.bpm,
     ),
-    [audioLight, fish.timestamp, lightClockMs, lightMotion, preset.bpm],
+    [audioLight, fish.timestamp, lightMotion, preset.bpm],
   );
-
-  useEffect(() => {
-    if (lightMotion !== "strobe") return;
-    const timer = window.setInterval(() => setLightClockMs(performance.now()), 25);
-    return () => window.clearInterval(timer);
-  }, [lightMotion]);
 
   const acceptFishState = useCallback((nextFish: FishState) => {
     setFish(nextFish);
@@ -270,10 +263,8 @@ export function SwimphonyConsole() {
   useEffect(() => {
     if (!hueStatus.enabled) return;
     const now = performance.now();
-    const hueUpdateIntervalMs = lightMotion === "strobe"
-      ? 65
-      : lightMotion === "beat-palette" || lightMotion === "party-edge"
-        ? 250
+    const hueUpdateIntervalMs = lightMotion === "beat-palette" || lightMotion === "party-edge"
+      ? 250
       : lightMotion === "color-steps"
         ? 500
         : 1000;
@@ -288,7 +279,7 @@ export function SwimphonyConsole() {
       body: JSON.stringify({
         light: performanceLight,
         confidence: fish.confidence,
-        forceOutput: lightMotion === "strobe",
+        forceOutput: false,
       }),
     })
       .then((response) => {

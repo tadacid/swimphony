@@ -2,7 +2,11 @@
 
 **Turn a goldfish into a living instrument for sound and ambient light.**
 
+![Swimphony — a goldfish trail becoming sound and light](./public/submission/swimphony-devpost-thumbnail.png)
+
 Swimphony is a one-camera web application that tracks a goldfish and converts its movement into generative music and ambient lighting. The submission-first design works with ordinary cameras and includes a virtual-light fallback, so Philips Hue is an enhancement rather than a requirement.
+
+Built during OpenAI Build Week, July 13–21, 2026.
 
 ## What is already in this starter
 
@@ -32,6 +36,17 @@ Open `http://localhost:3000`, press **Start audio**, and the recorded telemetry 
 On this Mac, double-click `/Users/tada/codex-work/Swimphony/Swimphony.app` instead. It starts the local server when needed and opens Swimphony in Chrome. Startup logs are written to `/tmp/swimphony-dev.log`.
 
 The Codex Conductor uses the locally installed Codex CLI and its existing ChatGPT login, so it needs no separate API key. Run `codex login status` to confirm the local session. If Codex is unavailable, Swimphony keeps running with the built-in safe preset.
+
+## Judge-friendly demo
+
+No aquarium, camera, Hue bridge, or account is required for the deterministic core demo:
+
+1. Run `npm install` and `npm run dev`.
+2. Open `http://localhost:3000` in Chrome.
+3. Keep **Demo Mode** selected and press **Start audio**.
+4. Open **Projection** to see the Golden Trail view.
+
+The included telemetry drives tracking state, music, Virtual Light, and projection. Generating a new AI Conductor preset requires a local Codex login; if it is unavailable, the app returns a validated built-in preset and continues running.
 
 ## Local Codex Conductor
 
@@ -79,6 +94,18 @@ Choose **投影画面** in the header to open a separate audience window. Move t
 4. Then work through the phase prompts in [`prompts/`](./prompts/), beginning with `01-phase1-tracking.md`.
 5. Keep the primary Codex thread and record its `/feedback` Session ID in `docs/10-codex-build-log-template.md`.
 
+## How Codex and GPT-5.6 were used
+
+Codex was the implementation partner across the project: it built the tracking and performance modules, connected live camera and sample-video inputs, added audio and lighting adapters, created the projection view, wrote tests, diagnosed browser and Hue behavior, and maintained the decision and build logs. The dated commit history shows the work completed during the Build Week submission period.
+
+The human decisions remained explicit: one ordinary camera is the baseline; deterministic demo mode is permanent; Hue is optional; fish welfare takes priority; and the AI belongs in creative direction rather than the real-time frame loop.
+
+GPT-5.6 performs that bounded creative role. It converts a natural-language mood into a structured `PerformancePreset` for sound, mapping, and light. The server constrains the output with JSON Schema, validates it again with Zod, and clamps all safety-sensitive values. Deterministic TypeScript performs the generated rules in real time.
+
+Primary Codex `/feedback` Session ID: `019f70bf-0594-7060-992f-c464fe304283`.
+
+See [`docs/10-codex-build-log-template.md`](./docs/10-codex-build-log-template.md) for phase evidence and [`docs/09-decision-log.md`](./docs/09-decision-log.md) for key product decisions.
+
 ## Submission scope
 
 ### Required
@@ -104,3 +131,26 @@ Choose **投影画面** in the header to open a separate audience window. Move t
 ## Safety
 
 Swimphony observes the fish passively. It must not use flashes, strobes, abrupt high-brightness changes, tapping, chasing, or other stimuli to force movement. Hue output should illuminate the room or wall indirectly rather than shine strongly into the aquarium.
+
+## Known limitations
+
+- Tracking is tuned for one orange goldfish in a mostly uncluttered aquarium.
+- Chrome on macOS is the primary verified browser; Safari and mobile browsers are not fully tested.
+- The local AI Conductor requires Codex to be installed and signed in. Its safe fallback works without a login.
+- Philips Hue requires a local bridge and server-only credentials; Virtual Light is always available.
+- Dual-camera depth, TrueDepth, and multi-fish identity tracking are not implemented.
+
+## Verification
+
+```bash
+npm test
+npm run lint
+npm run build
+npm run check:ready
+```
+
+The final submission run and manual checks are recorded in [`docs/10-codex-build-log-template.md`](./docs/10-codex-build-log-template.md).
+
+## License
+
+MIT. See [`LICENSE`](./LICENSE).

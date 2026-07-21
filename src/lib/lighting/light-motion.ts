@@ -4,8 +4,7 @@ export type LightMotionMode =
   | "flow"
   | "color-steps"
   | "beat-palette"
-  | "party-edge"
-  | "strobe";
+  | "party-edge";
 
 export const LIGHT_MOTION_OPTIONS: readonly {
   id: LightMotionMode;
@@ -17,7 +16,6 @@ export const LIGHT_MOTION_OPTIONS: readonly {
   { id: "color-steps", label: "Color Steps", cue: "色をパラパラ段階切替", brightness: "100%" },
   { id: "beat-palette", label: "Beat Palette", cue: "1拍ごとに色を即時切替", brightness: "100%" },
   { id: "party-edge", label: "Party Edge", cue: "1拍ごとにランダム風の色と強弱", brightness: "65 / 100%" },
-  { id: "strobe", label: "Strobe", cue: "4分の1拍ごとに点灯と消灯", brightness: "0 / 100%" },
 ];
 
 const STEP_PALETTE = [8, 48, 92, 156, 205, 268, 322] as const;
@@ -39,11 +37,9 @@ export function applyLightMotion(
   if (mode === "flow") return light;
 
   const beatMs = 60_000 / Math.max(40, Math.min(180, bpm));
-  const intervalMs = mode === "strobe"
-    ? Math.max(100, beatMs / 4)
-    : mode === "beat-palette" || mode === "party-edge"
-      ? beatMs
-      : Math.max(550, beatMs * 2);
+  const intervalMs = mode === "beat-palette" || mode === "party-edge"
+    ? beatMs
+    : Math.max(550, beatMs * 2);
   const step = Math.floor(Math.max(0, elapsedMs) / intervalMs);
 
   if (mode === "color-steps") {
@@ -65,17 +61,6 @@ export function applyLightMotion(
   };
 
   const random = pseudoRandomStep(step);
-  if (mode === "strobe") {
-    const pulse = Math.floor(step / 2);
-    const hueIndex = (pulse * 5 + 3) % PARTY_PALETTE.length;
-    return {
-      ...light,
-      hue: PARTY_PALETTE[hueIndex] ?? PARTY_PALETTE[0],
-      saturation: 90,
-      brightness: step % 2 === 0 ? 100 : 0,
-      transitionMs: 0,
-    };
-  }
   return {
     ...light,
     hue: PARTY_PALETTE[random % PARTY_PALETTE.length] ?? PARTY_PALETTE[0],

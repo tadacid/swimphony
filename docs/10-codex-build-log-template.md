@@ -6,7 +6,7 @@ Keep this document updated during the primary Codex thread.
 
 - Thread title: Swimphony handoff and build
 - Start date: 2026-07-18
-- `/feedback` Session ID:
+- `/feedback` Session ID: `019f70bf-0594-7060-992f-c464fe304283`
 - Codex model used: Codex desktop session
 
 ## Phase 0: starter validation
@@ -59,21 +59,21 @@ Keep this document updated during the primary Codex thread.
 ## Phase 4: Hue, if completed
 
 - Prompt used: `prompts/04-phase4-hue.md`
-- Files changed:
-- Hardware tested:
-- Codex contribution:
-- Human lighting decisions:
-- Known limitations:
-- Commit hash:
+- Files changed: `src/app/api/hue/route.ts`, `src/lib/lighting/hue-adapter.ts`, `src/lib/lighting/hue-color.ts`, `src/lib/lighting/audio-reactive-light.ts`, `src/lib/lighting/light-motion.ts`, `src/components/SwimphonyConsole.tsx`, `.env.example`, `README.md`, and tests.
+- Hardware tested: Local Philips Hue bridge and grouped-light output. Virtual Light remained active when Hue was disabled.
+- Codex contribution: Added server-only Hue credentials, confidence-aware output, audio-reactive color, selectable light motion, connection reuse, stale-update dropping, and warm-white restoration on shutdown.
+- Human lighting decisions: Keep Hue optional and indirect. Preserve Virtual Light as the universal path. The submission build removes brightness strobing and retains only nonzero, beat-limited alternatives.
+- Known limitations: Hue requires local bridge access and is not available to remote judges. The deterministic Virtual Light path demonstrates the same performance state without hardware.
+- Commit range: `8ae4577` through `8327911`; final submission safety adjustment pending the Phase 5 commit.
 
 ## Phase 5: polish and submission
 
 - Prompt used: `prompts/05-polish-and-submission.md`
-- Accessibility and device tests:
-- README/demo work:
-- Codex contribution:
-- Human product/design decisions:
-- Final commit hash:
+- Accessibility and device tests: Automated tests, lint, and production build pass. Final Chrome recording-layout and five-minute endurance checks remain before upload.
+- README/demo work: Added judge-friendly demo instructions, explicit Codex/GPT-5.6 collaboration, known limitations, MIT license, English Devpost draft, and a 2:40 demo script.
+- Codex contribution: Audited the official rules and submission fields through the Devpost Hackathons plugin, identified the primary session ID, prepared submission copy, removed the unsafe strobe mode, and assembled the final verification plan.
+- Human product/design decisions: Submit as **Apps for Your Life** under the existing name **Swimphony**. Keep the story centered on passive observation and the fish as performer.
+- Final commit hash: pending final verification.
 
 ### Genre groove accompaniment
 
