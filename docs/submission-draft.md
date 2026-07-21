@@ -75,6 +75,6 @@ The next step is testing the installation in more aquariums and rooms, then addi
 ## Pending URLs
 
 - **Devpost draft:** https://devpost.com/software/swimphony
-- **Repository:** pending GitHub authentication and publication
+- **Repository:** https://github.com/tadacid/swimphony
 - **Demo video:** pending recording and YouTube upload
 - **Judge instructions:** run `npm install`, `npm run dev`, open `http://localhost:3000`, choose Demo Mode, and press Start audio. Codex login is only required to generate a new AI Conductor preset; the safe built-in preset and all deterministic demo features remain available without it.
