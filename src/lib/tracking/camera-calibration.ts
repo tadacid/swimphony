@@ -7,12 +7,20 @@ import {
 
 export const CAMERA_CALIBRATION_STORAGE_KEY = "swimphony.camera-calibration.v1";
 
+const EXTERNAL_CAMERA_LABEL = /nintendo|switch|capture|usb|external|057e[: ]?206d/i;
+
 export type CameraCalibration = {
   version: 1;
   deviceId: string;
   roi: AquariumRoi;
   profile: ColorProfile;
 };
+
+export function preferredExternalCameraId(
+  devices: Array<{ deviceId: string; label: string }>,
+): string {
+  return devices.find((device) => EXTERNAL_CAMERA_LABEL.test(device.label))?.deviceId ?? "";
+}
 
 function finiteNumber(value: unknown): value is number {
   return typeof value === "number" && Number.isFinite(value);

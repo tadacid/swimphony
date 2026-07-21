@@ -7,6 +7,7 @@ import type { TrailPoint } from "@/components/AquariumStage";
 import {
   CAMERA_CALIBRATION_STORAGE_KEY,
   parseCameraCalibration,
+  preferredExternalCameraId,
   serializeCameraCalibration,
 } from "@/lib/tracking/camera-calibration";
 import {
@@ -125,21 +126,47 @@ function TrackedMedia({
   useEffect(() => {
     if (mediaKind !== "camera") return;
     let cancelled = false;
-    const saved = parseCameraCalibration(
-      window.localStorage.getItem(CAMERA_CALIBRATION_STORAGE_KEY),
-    );
-    queueMicrotask(() => {
-      if (cancelled) return;
-      if (saved) {
-        setRoi(saved.roi);
-        setProfile(saved.profile);
-        setSelectedDeviceId(saved.deviceId);
+    async function restoreCalibration() {
+      const saved = parseCameraCalibration(
+        window.localStorage.getItem(CAMERA_CALIBRATION_STORAGE_KEY),
+      );
+      let devices: MediaDeviceInfo[] = [];
+      try {
+        devices = (await navigator.mediaDevices.enumerateDevices()).filter(
+          (device) => device.kind === "videoinput",
+        );
+      } catch {
+        // getUserMedia below still provides the browser's default camera.
+      }
+      const preferredId = preferredExternalCameraId(devices);
+      const savedDeviceStillExists = devices.some(
+        (device) => device.deviceId === saved?.deviceId,
+      );
+      const deviceId = preferredId || (savedDeviceStillExists ? saved?.deviceId ?? "" : "");
+      const restoredRoi = saved?.roi ?? DEFAULT_AQUARIUM_ROI;
+      const restoredProfile = saved?.profile ?? GOLDFISH_RECOVERY_PROFILE;
+
+      queueMicrotask(() => {
+        if (cancelled) return;
+        setCameraDevices(devices);
+        setRoi(restoredRoi);
+        setProfile(restoredProfile);
+        setSelectedDeviceId(deviceId);
         setInteraction("idle");
         autoResumeRef.current = true;
-        setMessage("Saved aquarium and fish calibration loaded.");
-      }
-      setCalibrationLoaded(true);
-    });
+        window.localStorage.setItem(
+          CAMERA_CALIBRATION_STORAGE_KEY,
+          serializeCameraCalibration(deviceId, restoredRoi, restoredProfile),
+        );
+        setMessage(
+          preferredId
+            ? "External aquarium camera and goldfish calibration loaded."
+            : "Goldfish calibration loaded. Tracking will start with the camera.",
+        );
+        setCalibrationLoaded(true);
+      });
+    }
+    void restoreCalibration();
     return () => {
       cancelled = true;
     };
@@ -177,7 +204,18 @@ function TrackedMedia({
         if (cancelled) return;
         setCameraDevices(devices);
         const activeDeviceId = stream.getVideoTracks()[0]?.getSettings().deviceId;
-        if (!selectedDeviceId && activeDeviceId) setSelectedDeviceId(activeDeviceId);
+        if (!selectedDeviceId && activeDeviceId) {
+          setSelectedDeviceId(activeDeviceId);
+          const saved = parseCameraCalibration(
+            window.localStorage.getItem(CAMERA_CALIBRATION_STORAGE_KEY),
+          );
+          if (saved) {
+            window.localStorage.setItem(
+              CAMERA_CALIBRATION_STORAGE_KEY,
+              serializeCameraCalibration(activeDeviceId, saved.roi, saved.profile),
+            );
+          }
+        }
         setVideoReady(true);
         setMessage("Camera ready. Drag a box around the aquarium interior.");
         onCameraReady?.();
@@ -189,10 +227,29 @@ function TrackedMedia({
           error instanceof DOMException &&
           (error.name === "NotFoundError" || error.name === "OverconstrainedError")
         ) {
-          window.localStorage.removeItem(CAMERA_CALIBRATION_STORAGE_KEY);
-          setProfile(null);
-          setSelectedDeviceId("");
-          autoResumeRef.current = false;
+          const devices = (await navigator.mediaDevices.enumerateDevices()).filter(
+            (device) => device.kind === "videoinput",
+          );
+          if (cancelled) return;
+          const saved = parseCameraCalibration(
+            window.localStorage.getItem(CAMERA_CALIBRATION_STORAGE_KEY),
+          );
+          const nextProfile = saved?.profile ?? GOLDFISH_RECOVERY_PROFILE;
+          const nextRoi = saved?.roi ?? DEFAULT_AQUARIUM_ROI;
+          const preferredId = preferredExternalCameraId(devices);
+          const nextDeviceId = preferredId === selectedDeviceId ? "" : preferredId;
+          window.localStorage.setItem(
+            CAMERA_CALIBRATION_STORAGE_KEY,
+            serializeCameraCalibration(nextDeviceId, nextRoi, nextProfile),
+          );
+          setCameraDevices(devices);
+          setVideoReady(false);
+          setRoi(nextRoi);
+          setProfile(nextProfile);
+          setInteraction("idle");
+          setSelectedDeviceId(nextDeviceId);
+          autoResumeRef.current = true;
+          setMessage("Camera changed. Goldfish calibration was preserved and reconnected.");
           return;
         }
         if (!cancelled) onCameraUnavailable?.(cameraFailureMessage(error));

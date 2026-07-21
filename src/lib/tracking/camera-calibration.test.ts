@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   parseCameraCalibration,
+  preferredExternalCameraId,
   serializeCameraCalibration,
 } from "@/lib/tracking/camera-calibration";
 
@@ -64,5 +65,14 @@ describe("camera calibration persistence", () => {
         }),
       )?.roi,
     ).toEqual({ x: 0.035, y: 0.09, width: 0.93, height: 0.82 });
+  });
+
+  it("recovers a re-numbered Nintendo Switch camera", () => {
+    expect(
+      preferredExternalCameraId([
+        { deviceId: "facetime", label: "FaceTime HD Camera" },
+        { deviceId: "switch-new", label: "Nintendo Switch Camera (057e:206d)" },
+      ]),
+    ).toBe("switch-new");
   });
 });
